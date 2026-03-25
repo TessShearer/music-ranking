@@ -1,15 +1,19 @@
 <script setup>
 import { ref, onMounted } from 'vue'
-import { auth } from '@/firebaseClient'
+import { auth, db } from '@/firebaseClient'
+import { doc, setDoc } from 'firebase/firestore'
 import { useRouter } from 'vue-router'
+import { useStore } from 'vuex'
+import { themes as themeConfig } from '@/themes'
 
 const router = useRouter()
+const store = useStore()
+
 const username = ref('')
 const themes = ref([])
-const selectedThemeId = ref(null)
+const selectedThemeId = ref(0)
 const isPrivate = ref(false)
 const error = ref('')
-const success = ref('')
 
 onMounted(async () => {
   await auth.authStateReady()
@@ -18,21 +22,29 @@ onMounted(async () => {
     return
   }
   username.value = auth.currentUser.displayName || ''
-  // TODO: load themes from Firestore once database is connected
+  themes.value = Object.values(themeConfig)
 })
 
 const submitMember = async () => {
   error.value = ''
-  success.value = ''
 
   if (!username.value.trim()) {
     error.value = 'Please enter a username.'
     return
   }
 
-  // TODO: create member document in Firestore once database is connected
-  success.value = 'Member profile created successfully!'
-  router.push('/profile')
+  try {
+    const memberData = {
+      member_name: username.value.trim(),
+      theme_id: selectedThemeId.value,
+      is_private: isPrivate.value,
+    }
+    await setDoc(doc(db, 'members', auth.currentUser.uid), memberData)
+    store.commit('setMember', memberData)
+    router.push('/profile')
+  } catch (err) {
+    error.value = err.message
+  }
 }
 </script>
 
@@ -52,26 +64,42 @@ const submitMember = async () => {
       </label>
     </div>
 
-
     <div class="mb-3">
       <label class="form-label">Choose a Theme</label>
-      <div v-if="themes.length > 0">
-        <div v-for="theme in themes" :key="theme.id" class="form-check">
-          <input class="form-check-input" type="radio" :id="`theme-${theme.id}`" :value="theme.id"
-            v-model="selectedThemeId" />
-          <label class="form-check-label" :for="`theme-${theme.id}`">
-            {{ theme.title }}
-          </label>
+      <div class="d-flex flex-wrap gap-3 mt-2">
+        <div
+          v-for="theme in themes"
+          :key="theme.id"
+          class="text-center"
+          style="cursor: pointer"
+          @click="selectedThemeId = theme.id"
+        >
+          <div :class="['theme-circle', selectedThemeId === theme.id ? 'border border-dark border-3' : '']">
+            <img
+              :src="theme.image"
+              class="img-fluid rounded-circle"
+              style="width: 70px; height: 70px; object-fit: cover"
+              :alt="theme.name"
+            />
+          </div>
+          <small class="d-block mt-2">{{ theme.name }}</small>
         </div>
       </div>
-      <div v-else class="text-muted">Loading themes...</div>
     </div>
 
     <div class="text-end">
-      <button class="btn btn-primary" @click="submitMember">Okay</button>
+      <button class="btn btn-primary" @click="submitMember">Let's go!</button>
     </div>
 
     <div v-if="error" class="text-danger mt-3">{{ error }}</div>
-    <div v-if="success" class="text-success mt-3">{{ success }}</div>
   </div>
 </template>
+
+<style scoped>
+.theme-circle {
+  display: inline-block;
+  border-radius: 50%;
+  padding: 4px;
+  transition: border 0.2s ease-in-out;
+}
+</style>

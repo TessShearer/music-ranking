@@ -41,7 +41,8 @@ const signIn = async () => {
     const user = userCredential.user
 
     store.commit('setUser', user)
-    await router.push('/')
+    const hasMember = await store.dispatch('fetchMember', user.uid)
+    await router.push(hasMember ? '/' : '/create-member')
   } catch (err) {
     errorMessage.value = err.message
   }

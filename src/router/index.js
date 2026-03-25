@@ -16,11 +16,12 @@ const routes = [
   {
     path: '/',
     name: 'RootRedirect',
-    beforeEnter: async (to, from, next) => {
+    beforeEnter: async (_to, _from, next) => {
       await auth.authStateReady()
       const user = store.state.user || auth.currentUser
       if (user) {
-        next('/profile')
+        const hasMember = await store.dispatch('fetchMember', user.uid)
+        next(hasMember ? '/profile' : '/create-member')
       } else {
         next('/signin')
       }

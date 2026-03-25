@@ -30,7 +30,7 @@ const getRoute = () => {
       <li class="nav-item" v-for="member in members" :key="member.music_id">
         <sidenav-item :to="`/members/${member.music_id}/tables`"
           :navText="member.member_id === user?.uid ? `${member.member_name} (You)` : member.member_name"
-          :path="member.themes?.image" :background="member.themes?.light_one" :text="member.themes?.dark_one"
+          :path="member.theme?.image" :background="member.theme?.light_one" :text="member.theme?.dark_one"
           :class="getRoute() === `members/${member.music_id}/tables` ? 'active' : ''" />
       </li>
 

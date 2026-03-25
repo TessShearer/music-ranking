@@ -11,6 +11,7 @@ const route = useRoute()
 const store = useStore()
 
 const loggedInUser = computed(() => store.state.user)
+const theme = computed(() => store.state.theme)
 const musicId = computed(() => route.params.memberId)
 
 const member = ref(null)
@@ -51,7 +52,7 @@ onMounted(async () => {
 <template>
   <div v-if="member" class="container-fluid">
     <div class="page-header min-height-200" :style="{
-    backgroundImage: member?.themes?.header ? `url(${member.themes.header})` : '',
+    backgroundImage: theme?.header ? `url(${theme.header})` : '',
     backgroundSize: 'cover',
     backgroundPosition: 'center',
     marginRight: '-24px',
@@ -60,7 +61,7 @@ onMounted(async () => {
     position: 'relative'
   }">
       <span class="mask" :style="{
-    backgroundColor: member?.themes?.dark_one || '#000',
+    backgroundColor: theme?.dark_one || '#000',
     opacity: 0.3,
     position: 'absolute',
     top: 0,
@@ -71,7 +72,7 @@ onMounted(async () => {
     </div>
     <div class="row">
       <div class="col-12">
-        <artists-table :memberMusicId="member?.music_id" :theme="member?.themes" :isOwner="isOwner" />
+        <artists-table :memberMusicId="member?.music_id" :theme="theme" :isOwner="isOwner" />
       </div>
     </div>
   </div>

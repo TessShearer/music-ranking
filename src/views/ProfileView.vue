@@ -1,29 +1,32 @@
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue';
 import { useStore } from 'vuex';
-import { auth } from '@/firebaseClient';
+import { auth, db } from '@/firebaseClient';
+import { doc, updateDoc } from 'firebase/firestore';
 import ArgonInput from '@/components/ArgonInput.vue';
 import { useRouter } from 'vue-router'
+import { themes as themeConfig } from '@/themes'
 
 const store = useStore();
 const router = useRouter()
 
 const user = computed(() => store.state.user);
 const member = computed(() => store.state.member);
+const theme = computed(() => store.state.theme);
 
 const themes = ref([]);
 const showDeleteConfirm = ref(false)
-const selectedThemeId = ref(null);
+const selectedThemeId = ref(0);
 const updatedName = ref('');
 const success = ref('');
 const error = ref('');
 const isPrivate = ref(false);
 
-// Wait for member to load, then populate fields
 watch(member, (newMember) => {
   if (newMember) {
     updatedName.value = newMember.member_name;
-    selectedThemeId.value = newMember.theme_id;
+    selectedThemeId.value = newMember.theme_id ?? 0;
+    isPrivate.value = newMember.is_private || false;
   }
 }, { immediate: true });
 
@@ -34,7 +37,6 @@ onMounted(async () => {
   store.state.hideConfigButton = true;
   document.body.classList.add('profile-overview');
 
-  // Restore user from Firebase auth on page refresh
   if (!user.value) {
     await auth.authStateReady()
     if (auth.currentUser) {
@@ -42,14 +44,29 @@ onMounted(async () => {
     }
   }
 
-  // TODO: load themes from Firestore once database is connected
+  themes.value = Object.values(themeConfig)
+});
+
+onBeforeUnmount(() => {
+  store.state.isAbsolute = false;
+  document.body.classList.remove('profile-overview');
 });
 
 const submitChanges = async () => {
   error.value = '';
   success.value = '';
-  // TODO: save profile changes to Firestore once database is connected
-  success.value = 'Profile updated!';
+  try {
+    const memberData = {
+      member_name: updatedName.value.trim(),
+      theme_id: selectedThemeId.value,
+      is_private: isPrivate.value,
+    }
+    await updateDoc(doc(db, 'members', auth.currentUser.uid), memberData)
+    store.commit('setMember', memberData)
+    success.value = 'Profile updated!'
+  } catch (err) {
+    error.value = err.message
+  }
 };
 
 const openDeleteModal = () => {
@@ -57,22 +74,10 @@ const openDeleteModal = () => {
 };
 
 const deleteConfirmed = async () => {
-  // TODO: delete all user data from Firestore once database is connected
+  // TODO: delete all user data from Firestore once artists/albums/songs are implemented
   await store.dispatch('logout')
   router.push('/signin')
 };
-
-
-watch(member, (newMember) => {
-  if (newMember) {
-    updatedName.value = newMember.member_name;
-    selectedThemeId.value = newMember.theme_id;
-    isPrivate.value = newMember.is_private || false;
-    store.commit('setTheme', newMember.themes)
-    store.commit('setThemeSource', 'self')
-  }
-}, { immediate: true });
-
 </script>
 
 
@@ -81,7 +86,7 @@ watch(member, (newMember) => {
   <main>
     <div class="container-fluid">
       <div class="page-header min-height-250" :style="{
-        backgroundImage: member?.themes?.header ? `url(${member.themes.header})` : '',
+        backgroundImage: theme?.header ? `url(${theme.header})` : '',
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         marginRight: '-24px',
@@ -91,7 +96,7 @@ watch(member, (newMember) => {
       }">
       </div>
 
-      <div class="card shadow-lg mt-n8" :style="{ backgroundColor: member?.themes?.light_one || '#f5f5f5' }">
+      <div class="card shadow-lg mt-n8" :style="{ backgroundColor: theme?.light_one || '#f5f5f5' }">
         <div class="card-body p-3 d-inline-flex justify-content-between">
           <div class="h-100 px-4">
             <h5 class="mb-1">{{ member?.member_name || '...' }}</h5>
@@ -99,23 +104,22 @@ watch(member, (newMember) => {
           </div>
           <div>
             <button class="btn"
-              :style="{ backgroundColor: member?.themes?.dark_two || '#f5f5f5', color: member?.themes?.light_one }"
+              :style="{ backgroundColor: theme?.dark_two || '#495057', color: theme?.light_one || '#fff' }"
               @click="openDeleteModal">
               Delete My Account
             </button>
-
           </div>
         </div>
       </div>
     </div>
 
     <div class="py-4 container-fluid">
-      <div class="card" :style="{ backgroundColor: member?.themes?.light_one || '#f5f5f5' }">
+      <div class="card" :style="{ backgroundColor: theme?.light_one || '#f5f5f5' }">
         <div class="card-body">
 
           <div class="row">
             <div class="col-md-6">
-              <label class="form-control-label">Username</label>
+              <label class="form-control-label" :style="{ color: theme?.dark_one }">Username</label>
               <argon-input v-model="updatedName" type="text" />
             </div>
           </div>
@@ -123,35 +127,37 @@ watch(member, (newMember) => {
           <hr class="horizontal dark" />
 
           <div class="col-md-6 mt-3">
-            <label class="form-control-label">Private Profile</label>
+            <label class="form-control-label" :style="{ color: theme?.dark_one }">Private Profile</label>
             <div class="form-check form-switch">
               <input class="form-check-input" type="checkbox" id="privateSwitch" v-model="isPrivate" />
-              <label class="form-check-label" for="privateSwitch">
+              <label class="form-check-label" :style="{ color: theme?.dark_one }" for="privateSwitch">
                 {{ isPrivate ? 'Your profile is hidden from others' : 'Your profile is visible to others' }}
               </label>
             </div>
           </div>
 
-
           <hr class="horizontal dark" />
 
           <div>
-            <p class="text-uppercase text-sm">Choose Your Theme</p>
-            <div class="row">
-              <div v-for="theme in themes" :key="theme.id" class="col-md-3 text-center mb-4">
-                <div :class="['theme-circle', selectedThemeId === theme.id ? 'border border-dark border-3' : '']"
-                  style="cursor: pointer" @click="selectedThemeId = theme.id">
-                  <img :src="theme.image" class="img-fluid rounded-circle"
-                    style="width: 70px; height: 70px; object-fit: cover" :alt="theme.title" />
+            <p class="text-uppercase text-sm" :style="{ color: theme?.dark_one }">Choose Your Theme</p>
+            <div class="d-flex flex-wrap gap-3">
+              <div v-for="t in themes" :key="t.id" class="text-center" style="cursor: pointer" @click="selectedThemeId = t.id">
+                <div :class="['theme-circle', selectedThemeId === t.id ? 'border border-dark border-3' : '']">
+                  <img
+                    :src="t.image"
+                    class="img-fluid rounded-circle"
+                    style="width: 70px; height: 70px; object-fit: cover"
+                    :alt="t.name"
+                  />
                 </div>
-                <small class="d-block mt-2">{{ theme.title }}</small>
+                <small class="d-block mt-2" :style="{ color: theme?.dark_one }">{{ t.name }}</small>
               </div>
             </div>
           </div>
 
-          <div class="text-end">
+          <div class="text-end mt-4">
             <button class="btn ombre-overlay"
-              :style="{ backgroundColor: member?.themes?.dark_two || '#f5f5f5', color: member?.themes?.light_one }"
+              :style="{ backgroundColor: theme?.dark_two || '#495057', color: theme?.light_one || '#fff' }"
               @click="submitChanges">Update Profile</button>
           </div>
           <div v-if="error" class="text-danger mt-3">{{ error }}</div>

@@ -1,0 +1,65 @@
+// src/themes.js
+// All theme definitions live here. Only the theme ID needs to be stored in the database per user.
+// light_one  = primary background color
+// light_two  = secondary background color
+// dark_one   = primary text / foreground color
+// dark_two   = accent / button color
+// header     = path to header banner image (served from /public)
+// image      = path to theme icon image (served from /public)
+
+export const themes = {
+  0: {
+    id: 0,
+    name: 'Default',
+    light_one: '#ffffff',
+    light_two: '#f5f5f5',
+    dark_one:  '#212529',
+    dark_two:  '#495057',
+    header: null,
+    image: '/themes/settings.jpg',
+  },
+  1: {
+    id: 1,
+    name: 'Reputation',
+    light_one: '#1a1a1a',
+    light_two: '#2d2d2d',
+    dark_one:  '#e8e8e8',
+    dark_two:  '#d4af37',
+    header: '/themes/rep_header.jpg',
+    image: '/themes/rep.png',
+  },
+  2: {
+    id: 2,
+    name: 'Lover',
+    light_one: '#fce4f0',
+    light_two: '#f9cfea',
+    dark_one:  '#7a1e5e',
+    dark_two:  '#c455a0',
+    header: '/themes/lover_header.jpg',
+    image: '/themes/lover.png',
+  },
+  3: {
+    id: 3,
+    name: 'Love Sux',
+    light_one: '#fff0f0',
+    light_two: '#ffe0e0',
+    dark_one:  '#8b0000',
+    dark_two:  '#cc0000',
+    header: '/themes/love_sux_header.jpg',
+    image: '/themes/lovesux.png',
+  },
+  4: {
+    id: 4,
+    name: 'Good Kid M.A.A.D. City',
+    light_one: '#f0ede4',
+    light_two: '#e5e0d4',
+    dark_one:  '#4a4035',
+    dark_two:  '#7a6a5a',
+    header: '/themes/gkmc_header.webp',
+    image: '/themes/KendrickGKMC.jpg',
+  },
+}
+
+export function getTheme(id) {
+  return themes[id] ?? themes[0]
+}

@@ -1,6 +1,8 @@
 import { createStore } from "vuex";
-import { auth } from "@/firebaseClient";
+import { auth, db } from "@/firebaseClient";
 import { signOut } from "firebase/auth";
+import { doc, getDoc } from "firebase/firestore";
+import { getTheme } from "@/themes";
 
 export default createStore({
   state: {
@@ -24,7 +26,7 @@ export default createStore({
     // Auth/session-related
     user: null,
     member: null,
-    theme: null,
+    theme: getTheme(0),
     themeSource: 'self',
   },
 
@@ -64,12 +66,12 @@ export default createStore({
     },
     setMember(state, member) {
       state.member = member;
-      state.theme = member?.themes || null;
+      state.theme = getTheme(member?.theme_id ?? 0);
     },
     clearAuth(state) {
       state.user = null;
       state.member = null;
-      state.theme = null;
+      state.theme = getTheme(0);
       state.themeSource = 'self'
     },
   },
@@ -85,6 +87,16 @@ export default createStore({
       if (user) {
         commit("setUser", user);
       }
+    },
+
+    // Fetch member doc from Firestore and commit to store
+    async fetchMember({ commit }, uid) {
+      const snap = await getDoc(doc(db, 'members', uid))
+      if (snap.exists()) {
+        commit('setMember', snap.data())
+        return true
+      }
+      return false
     },
 
     // Logout and clear auth state

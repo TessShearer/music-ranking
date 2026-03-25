@@ -45,22 +45,23 @@ const navClasses = computed(() => {
   };
 });
 
-// On app mount, check if user is logged in but store is empty, then fetch user data
+// On app mount, check if user is logged in but store is empty, then fetch user and member data
 onMounted(async () => {
   if (!store.state.user) {
     await auth.authStateReady()
     if (auth.currentUser) {
       store.dispatch('fetchUser')
+      await store.dispatch('fetchMember', auth.currentUser.uid)
     }
   }
 });
 
 // Watch for theme changes in the store and update body background color accordingly
 watch(theme, (newTheme) => {
-  if (newTheme?.dark_one) {
-    document.body.style.backgroundColor = newTheme.dark_one;
+  if (newTheme?.light_one) {
+    document.body.style.backgroundColor = newTheme.light_one;
   } else {
-    document.body.style.backgroundColor = ''; // fallback to default
+    document.body.style.backgroundColor = '';
   }
 }, { immediate: true });
 </script>

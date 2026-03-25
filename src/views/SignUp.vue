@@ -16,7 +16,6 @@ const name = ref('')
 const email = ref('')
 const password = ref('')
 const errorMessage = ref('')
-const successMessage = ref('')
 
 // Hide layout elements while on auth page
 onBeforeMount(() => {
@@ -39,7 +38,6 @@ onMounted(() => {
 // Sign up handler
 const signUp = async () => {
   errorMessage.value = ''
-  successMessage.value = ''
 
   try {
     const userCredential = await createUserWithEmailAndPassword(auth, email.value, password.value)
@@ -49,7 +47,8 @@ const signUp = async () => {
       await updateProfile(user, { displayName: name.value })
     }
 
-    successMessage.value = 'Signup successful! Please check your email to verify your account.'
+    store.commit('setUser', user)
+    await router.push('/create-member')
   } catch (err) {
     errorMessage.value = err.message
   }
@@ -102,7 +101,6 @@ const signUp = async () => {
                     </div>
 
                     <p v-if="errorMessage" class="text-danger text-sm text-center">{{ errorMessage }}</p>
-                    <p v-if="successMessage" class="text-success text-sm text-center">{{ successMessage }}</p>
 
                     <p class="text-sm mt-3 mb-0">
                       Already have an account?

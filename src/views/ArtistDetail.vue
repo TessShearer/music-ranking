@@ -19,6 +19,7 @@ const modalAction = ref(null)
 
 const user = computed(() => store.state.user)
 const signedInMember = computed(() => store.state.member)
+const theme = computed(() => store.state.theme)
 const isLoggedIn = computed(() => !!user.value)
 const isOwner = computed(() =>
   isLoggedIn.value &&
@@ -161,12 +162,12 @@ const saveNote = async () => {
 
     <!-- Page header -->
     <div class="card mb-1"
-      :style="{ backgroundColor: member?.themes?.light_one || '#f5f5f5', color: member?.themes?.dark_one || '#333' }">
+      :style="{ backgroundColor: theme?.light_one || '#f5f5f5', color: theme?.dark_one || '#333' }">
       <div class="card-body d-flex flex-wrap align-items-center justify-content-between">
         <h3 class="mb-0">{{ artist?.name }}</h3>
         <button class="btn btn-outline my-auto" @click="router.push(`/members/${memberId}/tables`)" :style="{
-    border: 'solid 1px' + member?.themes?.dark_one,
-    color: member?.themes?.dark_one
+    border: 'solid 1px' + theme?.dark_one,
+    color: theme?.dark_one
   }">
           &lt; <span class="d-none d-md-inline">Back to Artists</span>
         </button>
@@ -176,9 +177,9 @@ const saveNote = async () => {
     <!-- Album Ranking on Top -->
     <div class="row mb-4">
       <div class="col-12">
-        <artist-ranking-card :theme="member?.themes" :albums="albums" :isOwner="isOwner" />
+        <artist-ranking-card :theme="theme" :albums="albums" :isOwner="isOwner" />
 
-        <div class="card" :style="{ backgroundColor: member?.themes?.light_one, color: member?.themes?.dark_one }">
+        <div class="card" :style="{ backgroundColor: theme?.light_one, color: theme?.dark_one }">
           <div class="card-body">
             <div class="row align-items-center">
               <div class="col-12 col-md-6">
@@ -193,8 +194,8 @@ const saveNote = async () => {
                     <!-- Save/Cancel buttons inline -->
                     <div v-if="isOwner && editingRanking" class="d-flex gap-2">
                       <button class="btn btn-outline-success btn-sm" :style="{
-    color: member?.themes?.dark_one,
-    borderColor: member?.themes?.dark_one
+    color: theme?.dark_one,
+    borderColor: theme?.dark_one
   }" @click="editingRanking = false">
                         Save
                       </button>
@@ -208,7 +209,7 @@ const saveNote = async () => {
                 <!-- Add album button -->
                 <div v-if="isOwner && !showAlbumInput">
                   <button class="btn ombre-overlay"
-                    :style="{ backgroundColor: member?.themes?.dark_two, color: member?.themes?.light_one }"
+                    :style="{ backgroundColor: theme?.dark_two, color: theme?.light_one }"
                     @click="showAlbumInput = true">
                     + Add Album
                   </button>
@@ -217,15 +218,15 @@ const saveNote = async () => {
                 <!-- Album input form -->
                 <div v-else-if="isOwner" class="mt-2 mt-md-0">
                   <input v-model="newAlbumName" type="text" class="form-control mb-2" placeholder="New album name"
-                    :style="{ backgroundColor: member?.themes?.light_two + 'CC', color: member?.themes?.dark_one, border: 'solid 1px' + member?.themes?.dark_one }" />
+                    :style="{ backgroundColor: theme?.light_two + 'CC', color: theme?.dark_one, border: 'solid 1px' + theme?.dark_one }" />
                   <div class="d-flex justify-content-end gap-2">
                     <button class="btn btn-outline"
-                      :style="{ backgroundColor: member?.themes?.light_one, color: member?.themes?.dark_one, border: 'solid 1px' + member?.themes?.dark_one }"
+                      :style="{ backgroundColor: theme?.light_one, color: theme?.dark_one, border: 'solid 1px' + theme?.dark_one }"
                       @click="addAlbum">
                       Add
                     </button>
                     <button class="btn btn-outline"
-                      :style="{ backgroundColor: member?.themes?.light_one, color: member?.themes?.dark_one, border: 'solid 1px' + member?.themes?.dark_one }"
+                      :style="{ backgroundColor: theme?.light_one, color: theme?.dark_one, border: 'solid 1px' + theme?.dark_one }"
                       @click="showAlbumInput = false">
                       Cancel
                     </button>
@@ -240,7 +241,7 @@ const saveNote = async () => {
               class="list-group">
               <template #item="{ element, index }">
                 <li class="list-group-item d-flex justify-content-between align-items-center"
-                  :style="{ backgroundColor: member?.themes?.light_one, color: member?.themes?.dark_one }">
+                  :style="{ backgroundColor: theme?.light_one, color: theme?.dark_one }">
                   <span>#{{ index + 1 }} - {{ element.title }}</span>
                   <img :src="menu" alt="move" class="img-fluid" style="max-height: 12px;" />
                 </li>
@@ -250,7 +251,7 @@ const saveNote = async () => {
             <ul v-else class="list-group view-only">
               <li v-for="(album, index) in albums" :key="album.id"
                 class="list-group-item d-flex justify-content-between view-only align-items-center"
-                :style="{ backgroundColor: member?.themes?.light_one, color: member?.themes?.dark_one }">
+                :style="{ backgroundColor: theme?.light_one, color: theme?.dark_one }">
                 <span>#{{ index + 1 }} - {{ album.title }}</span>
               </li>
             </ul>
@@ -265,7 +266,7 @@ const saveNote = async () => {
         <div class="row">
           <div v-for="album in albums" :key="album.id" class="col-md-6 mb-4">
             <div class="card shadow"
-              :style="{ backgroundColor: member?.themes?.light_one, color: member?.themes?.dark_one }">
+              :style="{ backgroundColor: theme?.light_one, color: theme?.dark_one }">
               <div class="m-4">
 
                 <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap">
@@ -279,9 +280,9 @@ const saveNote = async () => {
                         class="form-control form-control-sm" :style="{
     maxWidth: '250px',
     flex: '1 1 auto',
-    backgroundColor: member?.themes?.light_two,
-    color: member?.themes?.dark_one,
-    borderColor: member?.themes?.dark_one
+    backgroundColor: theme?.light_two,
+    color: theme?.dark_one,
+    borderColor: theme?.dark_one
   }" />
 
                       <!-- Static Album Title -->
@@ -293,8 +294,8 @@ const saveNote = async () => {
                       <!-- Save Name Button -->
                       <button v-if="isOwner && editingAlbumId === album.id && editingAlbumNameId === album.id"
                         class="btn btn-sm py-2 px-3 mx-3 my-auto" :style="{
-    backgroundColor: member?.themes?.dark_two,
-    color: member?.themes?.light_one
+    backgroundColor: theme?.dark_two,
+    color: theme?.light_one
   }" @click="saveAlbumTitle(album.id); editingAlbumNameId = null">
                         Save Name
                       </button>
@@ -302,8 +303,8 @@ const saveNote = async () => {
                       <!-- Edit Name Button -->
                       <button v-else-if="isOwner && editingAlbumId === album.id && editingAlbumNameId !== album.id"
                         class="btn btn-sm py-2 px-3 mx-3 my-auto" :style="{
-    backgroundColor: member?.themes?.dark_two,
-    color: member?.themes?.light_one
+    backgroundColor: theme?.dark_two,
+    color: theme?.light_one
   }" @click="() => {
     editingAlbumNameId = album.id;
     editedAlbumTitle = album.title;
@@ -322,7 +323,7 @@ const saveNote = async () => {
                   <!-- Album Edit Actions -->
                   <div class="d-flex align-items-center gap-2 mt-2 mt-sm-0" v-if="editingAlbumId === album.id">
                     <button class="btn btn-sm btn-outline-success"
-                      :style="{ color: member?.themes?.dark_one, borderColor: member?.themes?.dark_one }"
+                      :style="{ color: theme?.dark_one, borderColor: theme?.dark_one }"
                       @click="saveAlbumTitle(album.id), editingAlbumId = null">
                       Save
                     </button>
@@ -338,7 +339,7 @@ const saveNote = async () => {
                   :class="{ 'two-columns': album.songs.length >= 10 }">
                   <template #item="{ element, index }">
                     <li class="list-group-item d-flex justify-content-between align-items-center"
-                      :style="{ backgroundColor: member?.themes?.light_one, color: member?.themes?.dark_one }">
+                      :style="{ backgroundColor: theme?.light_one, color: theme?.dark_one }">
                       <div class="d-flex align-items-center">
                         <button v-if="isOwner && editingAlbumId === album.id"
                           class="btn btn-sm btn-link text-danger my-auto px-1 me-2" @click="deleteSong(element.id)"
@@ -365,7 +366,7 @@ const saveNote = async () => {
                 <div v-else class="song-list mb-2 view-only" :class="{ 'two-columns': album.songs.length >= 10 }">
                   <div v-for="(song, index) in album.songs" :key="song.id"
                     class="list-group-item d-flex view-only justify-content-between align-items-center"
-                    :style="{ backgroundColor: member?.themes?.light_one, color: member?.themes?.dark_one }">
+                    :style="{ backgroundColor: theme?.light_one, color: theme?.dark_one }">
                     <span>#{{ index + 1 }} - {{ song.title }}</span>
 
                     <div class="d-flex align-items-center gap-2">
@@ -384,7 +385,7 @@ const saveNote = async () => {
                 <!-- Add Song Section -->
                 <div v-if="isOwner && editingAlbumId === album.id">
                   <button class="btn btn-outline btn-sm mb-2"
-                    :style="{ border: 'solid 1px' + member?.themes?.dark_one }"
+                    :style="{ border: 'solid 1px' + theme?.dark_one }"
                     @click="album.addingSong = !album.addingSong" v-if="!album.addingSong">
                     + Add Song
                   </button>
@@ -392,15 +393,15 @@ const saveNote = async () => {
                   <div v-if="album.addingSong">
                     <input v-model="album.newSongName" placeholder="New song title"
                       class="form-control form-control-sm mb-2"
-                      :style="{ backgroundColor: 'white', color: member?.themes?.dark_one, border: 'solid 1px' + member?.themes?.dark_one }"
+                      :style="{ backgroundColor: 'white', color: theme?.dark_one, border: 'solid 1px' + theme?.dark_one }"
                       @keyup.enter="addSong(album.id, album.newSongName); album.newSongName = ''; album.addingSong = false" />
 
                     <div class="d-flex justify-content-start gap-2">
-                      <button class="btn btn-sm btn-outline" :style="{ border: 'solid 1px' + member?.themes?.dark_one }"
+                      <button class="btn btn-sm btn-outline" :style="{ border: 'solid 1px' + theme?.dark_one }"
                         @click="addSong(album.id, album.newSongName); album.newSongName = ''; album.addingSong = false">
                         Add
                       </button>
-                      <button class="btn btn-sm btn-outline" :style="{ border: 'solid 1px' + member?.themes?.dark_one }"
+                      <button class="btn btn-sm btn-outline" :style="{ border: 'solid 1px' + theme?.dark_one }"
                         @click="album.addingSong = false">
                         Cancel
                       </button>
@@ -414,7 +415,7 @@ const saveNote = async () => {
                   style="background: rgba(0,0,0,0.5);">
                   <div class="modal-dialog">
                     <div class="modal-content"
-                      :style="{ backgroundColor: member?.themes?.light_one, color: member?.themes?.dark_one }">
+                      :style="{ backgroundColor: theme?.light_one, color: theme?.dark_one }">
                       <div class="modal-header">
                         <h5 class="modal-title">Song Note</h5>
                         <button type="button" class="btn-close" @click="showNoteModal = false"></button>
@@ -423,7 +424,7 @@ const saveNote = async () => {
                         <p><strong>{{ currentNoteSong?.title }}</strong></p>
 
                         <textarea v-model="noteText" class="form-control" rows="4" :readonly="!isOwner"
-                          :style="{ color: member?.themes?.dark_one }" />
+                          :style="{ color: theme?.dark_one }" />
                       </div>
                       <div class="modal-footer">
                         <button class="btn btn-secondary" @click="showNoteModal = false">
