@@ -13,14 +13,16 @@ Coded by www.creative-tim.com
 * The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 -->
 <script setup>
-import { computed } from "vue";
+import { computed, watch, onMounted } from "vue";
 import { useStore } from "vuex";
-import Sidenav from "./examples/Sidenav/indexSidenav.vue";
-import Configurator from "@/examples/ConfiguratorExample.vue";
-import Navbar from "@/examples/Navbars/NavbarNavbar.vue";
-import AppFooter from "@/examples/FooterExample.vue";
+import Sidenav from "./views/components/indexSidenav.vue";
+import Navbar from "@/views/components/NavbarNavbar.vue";
+import AppFooter from "@/views/components/FooterExample.vue";
+import { auth } from '@/firebaseClient';
+import { useRoute } from 'vue-router';
 
 const store = useStore();
+
 const isNavFixed = computed(() => store.state.isNavFixed);
 const darkMode = computed(() => store.state.darkMode);
 const isAbsolute = computed(() => store.state.isAbsolute);
@@ -28,12 +30,9 @@ const showSidenav = computed(() => store.state.showSidenav);
 const layout = computed(() => store.state.layout);
 const showNavbar = computed(() => store.state.showNavbar);
 const showFooter = computed(() => store.state.showFooter);
-const showConfig = computed(() => store.state.showConfig);
-const hideConfigButton = computed(() => store.state.hideConfigButton);
-const toggleConfigurator = () => store.commit("toggleConfigurator");
-import { useRoute } from 'vue-router'
+const theme = computed(() => store.state.theme);
 
-const route = useRoute()
+const route = useRoute();
 
 const navClasses = computed(() => {
   return {
@@ -45,18 +44,33 @@ const navClasses = computed(() => {
     "px-0 mx-4": !isAbsolute.value,
   };
 });
+
+// On app mount, check if user is logged in but store is empty, then fetch user data
+onMounted(async () => {
+  if (!store.state.user) {
+    await auth.authStateReady()
+    if (auth.currentUser) {
+      store.dispatch('fetchUser')
+    }
+  }
+});
+
+// Watch for theme changes in the store and update body background color accordingly
+watch(theme, (newTheme) => {
+  if (newTheme?.dark_one) {
+    document.body.style.backgroundColor = newTheme.dark_one;
+  } else {
+    document.body.style.backgroundColor = ''; // fallback to default
+  }
+}, { immediate: true });
 </script>
+
 <template>
-  <div
-    v-show="layout === 'landing'"
-    class="landing-bg h-100 bg-gradient-primary position-fixed w-100"
-  ></div>
+  <div v-show="layout === 'landing'" class="landing-bg h-100 bg-gradient-primary position-fixed w-100"></div>
 
   <sidenav v-if="showSidenav" />
 
-  <main
-    class="main-content position-relative max-height-vh-100 h-100 border-radius-lg"
-  >
+  <main class="main-content position-relative max-height-vh-100 h-100 border-radius-lg">
     <!-- nav -->
 
     <navbar :class="[navClasses]" v-if="showNavbar && !route.meta.hideNavbar" />
@@ -66,9 +80,5 @@ const navClasses = computed(() => {
 
     <app-footer v-show="showFooter" />
 
-    <configurator
-      :toggle="toggleConfigurator"
-      :class="[showConfig ? 'show' : '', hideConfigButton ? 'd-none' : '']"
-    />
   </main>
 </template>

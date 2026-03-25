@@ -1,12 +1,15 @@
 <script setup>
-import { ref } from 'vue'
-// import { useRouter } from 'vue-router'
-import { supabase } from '@/supabaseClient'
+import { ref, onMounted, onBeforeMount, onBeforeUnmount } from 'vue'
+import { useRouter } from 'vue-router'
+import { auth } from '@/firebaseClient'
+import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth'
+import { useStore } from 'vuex'
 
-import Navbar from "@/examples/PageLayout/NavbarLayout.vue";
-import AppFooter from "@/examples/PageLayout/FooterLayout.vue";
-import ArgonInput from "@/components/ArgonInput.vue";
-import ArgonButton from "@/components/ArgonButton.vue";
+import ArgonInput from "@/components/ArgonInput.vue"
+import ArgonButton from "@/components/ArgonButton.vue"
+
+const store = useStore()
+const router = useRouter()
 
 // Form state
 const name = ref('')
@@ -15,86 +18,114 @@ const password = ref('')
 const errorMessage = ref('')
 const successMessage = ref('')
 
-// const router = useRouter()
+// Hide layout elements while on auth page
+onBeforeMount(() => {
+  store.state.layout = 'auth'
+  store.state.showNavbar = false
+})
 
+onBeforeUnmount(() => {
+  store.state.layout = 'default'
+  store.state.showNavbar = true
+})
+
+// Redirect if already logged in
+onMounted(() => {
+  if (store.state.user || auth.currentUser) {
+    router.push('/')
+  }
+})
+
+// Sign up handler
 const signUp = async () => {
   errorMessage.value = ''
   successMessage.value = ''
 
-  const { data, error } = await supabase.auth.signUp({
-    email: email.value,
-    password: password.value,
-    options: {
-      data: {
-        full_name: name.value
-      }
-    }
-  })
+  try {
+    const userCredential = await createUserWithEmailAndPassword(auth, email.value, password.value)
+    const user = userCredential.user
 
-  if (error) {
-    errorMessage.value = error.message
-  } else {
-    successMessage.value = 'Signup successful! Please check your email to confirm your account.'
-    console.log('User signed up:', data)
-    // Optionally redirect after a delay
-    // setTimeout(() => router.push('/signin'), 2000)
-    const { user } = data
-
-    if (!user) {
-      errorMessage.value = "User not available yet, please confirm your email first."
-      return
+    if (name.value) {
+      await updateProfile(user, { displayName: name.value })
     }
 
-    console.log('Signed up user:', user)
-
-
+    successMessage.value = 'Signup successful! Please check your email to verify your account.'
+  } catch (err) {
+    errorMessage.value = err.message
   }
 }
 </script>
 
 <template>
-  <div class="container top-0 position-sticky z-index-sticky">
-    <div class="row">
-      <div class="col-12">
-        <navbar isBtn="bg-gradient-light" />
-      </div>
-    </div>
-  </div>
-  <main class="main-content mt-0">
-    <div class="page-header align-items-start min-vh-50 pt-5 pb-11 m-3 border-radius-lg" style="
-        background-image: url(&quot;https://raw.githubusercontent.com/creativetimofficial/public-assets/master/argon-dashboard-pro/assets/img/signup-cover.jpg&quot;);
-        background-position: top;
-      ">
-
-    </div>
-    <div class="container">
-      <div class="row mt-lg-n10 mt-md-n11 mt-n10 justify-content-center">
-        <div class="col-xl-4 col-lg-5 col-md-7 mx-auto">
-          <div class="card z-index-0">
-            <div class="card-body">
-              <form role="form">
-                <argon-input v-model="name" id="name" type="text" placeholder="Name" aria-label="Name" />
-                <argon-input v-model="email" id="email" type="email" placeholder="Email" aria-label="Email" />
-                <argon-input v-model="password" id="password" type="password" placeholder="Password"
-                  aria-label="Password" />
-                <div class="text-center">
-                  <argon-button fullWidth color="dark" variant="gradient" class="my-4 mb-2" @click.prevent="signUp">
-                    Sign up
-                  </argon-button>
+  <main class="mt-0 main-content">
+    <section>
+      <div class="page-header min-vh-100">
+        <div class="container">
+          <div class="row">
+            <div class="mx-auto col-xl-4 col-lg-5 col-md-7 d-flex flex-column mx-lg-0">
+              <div class="card card-plain">
+                <div class="pb-0 card-header text-start">
+                  <h4 class="font-weight-bolder">Sign Up</h4>
+                  <p class="mb-0">Create your account below</p>
                 </div>
-                <p v-if="errorMessage" class="text-danger text-sm text-center">{{ errorMessage }}</p>
-                <p v-if="successMessage" class="text-success text-sm text-center">{{ successMessage }}</p>
+                <div class="card-body">
+                  <form role="form">
+                    <argon-input
+                      v-model="name"
+                      id="name"
+                      type="text"
+                      placeholder="Name"
+                      aria-label="Name"
+                    />
+                    <argon-input
+                      v-model="email"
+                      id="email"
+                      type="email"
+                      placeholder="Email"
+                      aria-label="Email"
+                    />
+                    <argon-input
+                      v-model="password"
+                      id="password"
+                      type="password"
+                      placeholder="Password"
+                      aria-label="Password"
+                    />
+                    <div class="text-center">
+                      <argon-button
+                        fullWidth
+                        class="my-4 mb-2 custom-signup-btn"
+                        @click.prevent="signUp"
+                      >
+                        Sign up
+                      </argon-button>
+                    </div>
 
-                <p class="text-sm mt-3 mb-0">
-                  Already have an account?
-                  <a href="javascript:;" class="text-dark font-weight-bolder">Sign in</a>
-                </p>
-              </form>
+                    <p v-if="errorMessage" class="text-danger text-sm text-center">{{ errorMessage }}</p>
+                    <p v-if="successMessage" class="text-success text-sm text-center">{{ successMessage }}</p>
+
+                    <p class="text-sm mt-3 mb-0">
+                      Already have an account?
+                      <router-link to="/signin" class="text-primary fw-bold">Sign In!</router-link>
+                    </p>
+                  </form>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
+    </section>
   </main>
-  <app-footer />
 </template>
+
+<style scoped>
+.custom-signup-btn {
+  background: linear-gradient(135deg, #aa28c1, #6834c9);
+  color: white;
+  border: none;
+}
+.custom-signup-btn:hover {
+  opacity: 0.95;
+}
+</style>

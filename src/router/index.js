@@ -1,43 +1,41 @@
 import { createRouter, createWebHistory } from "vue-router";
-import Dashboard from "../views/DashboardView.vue";
+import store from '@/store'
+import { auth } from '@/firebaseClient'
+
+
 import Tables from "../views/TablesView.vue";
-import Billing from "../views/BillingView.vue";
-import VirtualReality from "../views/VirtualReality.vue";
-import RTL from "../views/RtlView.vue";
 import Profile from "../views/ProfileView.vue";
 import Signup from "../views/SignUp.vue";
 import Signin from "../views/SignIn.vue";
+import ResetPassword from "../views/ResetPassword.vue";
+import ArtistDetail from "../views/ArtistDetail.vue";
+import ForbiddenView from "../views/ForbiddenView.vue";
+import MemberAddCard from "../views/components/MemberAddCard.vue";
 
 const routes = [
   {
-    path: "/",
-    name: "/",
-    redirect: "/dashboard-default",
+    path: '/',
+    name: 'RootRedirect',
+    beforeEnter: async (to, from, next) => {
+      await auth.authStateReady()
+      const user = store.state.user || auth.currentUser
+      if (user) {
+        next('/profile')
+      } else {
+        next('/signin')
+      }
+    }
+  },
+
+  {
+    path: "/create-member",
+    name: "MemberAddCard",
+    component: MemberAddCard,
   },
   {
-    path: "/dashboard-default",
-    name: "Dashboard",
-    component: Dashboard,
-  },
-  {
-    path: "/tables",
+    path: '/members/:memberId/tables',
     name: "Tables",
     component: Tables,
-  },
-  {
-    path: "/billing",
-    name: "Billing",
-    component: Billing,
-  },
-  {
-    path: "/virtual-reality",
-    name: "Virtual Reality",
-    component: VirtualReality,
-  },
-  {
-    path: "/rtl-page",
-    name: "RTL",
-    component: RTL,
   },
   {
     path: "/profile",
@@ -55,10 +53,26 @@ const routes = [
     name: "Signup",
     component: Signup,
   },
+  {
+    path: "/resetpassword",
+    name: "ResetPassword",
+    component: ResetPassword,
+  },
+  {
+    path: '/artists/:memberId/:artistId',
+    name: "ArtistDetail",
+    component: ArtistDetail,
+    props: true
+  },
+  {
+    path: '/forbidden',
+    name: "ForbiddenView",
+    component: ForbiddenView,
+  },
 ];
 
 const router = createRouter({
-  history: createWebHistory(process.env.BASE_URL),
+  history: createWebHistory('/song-ranker/'),
   routes,
   linkActiveClass: "active",
 });
