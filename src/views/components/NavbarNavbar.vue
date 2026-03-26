@@ -17,6 +17,16 @@ const members = ref([])
 
 const userName = computed(() => user.value?.displayName || user.value?.email || 'Guest')
 
+const menuIconFilter = computed(() => {
+  const hex = theme.value?.light_one?.replace('#', '')
+  if (!hex || hex.length < 6) return 'none'
+  const r = parseInt(hex.slice(0, 2), 16)
+  const g = parseInt(hex.slice(2, 4), 16)
+  const b = parseInt(hex.slice(4, 6), 16)
+  const luminance = (r * 299 + g * 587 + b * 114) / 1000
+  return luminance < 128 ? 'invert(1)' : 'none'
+})
+
 const dropdownRef = ref(null)
 
 const toggleDropdown = () => {
@@ -59,7 +69,7 @@ const handleLogout = async () => {
       <!-- Mobile dropdown toggle -->
       <div class="position-relative" ref="dropdownRef">
         <button class="btn btn-outline my-auto" @click="toggleDropdown">
-          <img :src="menu" alt="Menu" class="img-fluid" style="max-height: 18px;" />
+          <img :src="menu" alt="Menu" class="img-fluid" style="max-height: 18px;" :style="{ filter: menuIconFilter }" />
         </button>
 
         <ul v-if="showDropdown" class="position-absolute mt-2 shadow rounded dropdown-menu d-block"

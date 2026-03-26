@@ -41,6 +41,7 @@ const editingAlbumId = ref(null)
 const editingAlbumNameId = ref(null)
 const editedAlbumTitle = ref('')
 const editingRanking = ref(false)
+const albumRankingExpanded = ref(false)
 
 function showToastMessage(message, timeout = 3000) {
   toastMessage.value = message
@@ -69,6 +70,7 @@ const loadAlbums = async () => {
     addingSong: false,
     newSongName: '',
     songs: [],
+    expanded: false,
     ...d.data(),
     id: d.id,
   }))
@@ -233,15 +235,22 @@ onUnmounted(() => {
               <template v-if="isOwner && !showAlbumInput">
                 <button class="btn btn-sm px-2 py-1"
                   :style="{ backgroundColor: theme?.dark_two, color: theme?.light_one }"
-                  @click="showAlbumInput = true">
+                  @click="showAlbumInput = true; albumRankingExpanded = true">
                   + Add Album
                 </button>
               </template>
+              <!-- Mobile collapse toggle -->
+              <button class="d-md-none btn btn-sm px-2 py-1 d-flex align-items-center justify-content-center"
+                style="width: 30px; height: 28px;"
+                :style="{ color: theme?.dark_one, border: '1px solid ' + theme?.dark_one }"
+                @click="albumRankingExpanded = !albumRankingExpanded">
+                <span class="chevron" :class="albumRankingExpanded ? 'chevron-up' : 'chevron-down'"></span>
+              </button>
             </div>
           </div>
 
           <!-- Card Body -->
-          <div class="card-body py-2 px-3">
+          <div class="card-body py-2 px-3" :class="{ 'd-none d-md-block': !albumRankingExpanded }">
 
             <!-- Add album inline form -->
             <div v-if="isOwner && showAlbumInput" class="d-flex align-items-stretch gap-2 mb-3">
@@ -341,15 +350,22 @@ onUnmounted(() => {
                   <!-- View mode: pencil to enter edit -->
                   <template v-else-if="isOwner">
                     <button class="btn btn-sm btn-link p-1" title="Edit album"
-                      @click="() => { editingAlbumId = album.id; editedAlbumTitle = album.title }">
+                      @click="() => { editingAlbumId = album.id; editedAlbumTitle = album.title; album.expanded = true }">
                       <img :src="pencil" alt="Edit" style="max-height: 13px; opacity: 0.6;" />
                     </button>
                   </template>
+                  <!-- Mobile collapse toggle (always visible on mobile) -->
+                  <button class="d-md-none btn btn-sm px-2 py-1 d-flex align-items-center justify-content-center ms-1"
+                    style="width: 30px; height: 28px;"
+                    :style="{ color: theme?.dark_one, border: '1px solid ' + theme?.dark_one }"
+                    @click="album.expanded = !album.expanded">
+                    <span class="chevron" :class="album.expanded ? 'chevron-up' : 'chevron-down'"></span>
+                  </button>
                 </div>
               </div>
 
               <!-- Card Body: song list -->
-              <div class="card-body py-2 px-3">
+              <div class="card-body py-2 px-3" :class="{ 'd-none d-md-block': !album.expanded }">
                 <!-- Editable draggable song list -->
                 <draggable v-if="isOwner && editingAlbumId === album.id" v-model="album.songs"
                   :group="{ name: 'songs-' + album.id }" @end="updateSongOrder(album)" tag="ul"
@@ -498,5 +514,21 @@ onUnmounted(() => {
 .view-only,
 .view-only .song-row {
   cursor: default;
+}
+
+.chevron {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+}
+
+.chevron-down {
+  transform: rotate(45deg) translate(-1px, -1px);
+}
+
+.chevron-up {
+  transform: rotate(-135deg) translate(-1px, -1px);
 }
 </style>

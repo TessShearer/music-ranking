@@ -163,6 +163,8 @@ const cancelReset = () => { showConfirmReset.value = false }
                 <li v-for="(song, index) in rankedList" :key="song.id"
                     class="ranked-row d-flex align-items-center px-1 py-1 view-only"
                     :style="{ color: theme.dark_one }">
+                    <button v-if="props.isOwner" class="btn btn-sm btn-link text-danger p-0 lh-1 me-2"
+                        style="font-size: 0.8rem;" @click="removeSongFromRanking(song)" title="Remove">×</button>
                     <span class="text-muted me-2" style="font-size: 0.8rem; min-width: 1.5rem;">#{{ index + 1 }}</span>
                     <span class="flex-grow-1" style="font-size: 0.9rem;">{{ song.title }}</span>
                     <span style="font-size: 0.78rem; opacity: 0.6;">{{ song.albums.title }}</span>
@@ -170,25 +172,27 @@ const cancelReset = () => { showConfirmReset.value = false }
             </ul>
 
             <!-- Add from albums (edit mode) -->
-            <div v-if="editing && props.isOwner" class="mt-4">
-                <h6 class="mb-3 fw-semibold" :style="{ color: theme.dark_one }">Add from Albums</h6>
-                <div class="d-flex flex-wrap gap-3">
-                    <div v-for="album in unrankedTopSongsPerAlbum" :key="album.id" class="card"
-                        :style="{ backgroundColor: theme.light_two, color: theme.dark_one, border: '1px solid ' + (theme.dark_one || '#000') + '22', minWidth: '180px', maxWidth: '220px' }">
-                        <div class="card-header py-1 px-3"
-                            :style="{ backgroundColor: theme.light_two, borderBottom: '1px solid ' + (theme.dark_one || '#000') + '22', border: 'none' }">
-                            <strong style="font-size: 0.85rem;" :style="{ color: theme.dark_one }">{{ album.title }}</strong>
+            <div v-if="editing && props.isOwner" class="mt-3">
+                <h6 class="mb-2 fw-semibold" style="font-size: 0.85rem;" :style="{ color: theme.dark_one }">Add from Albums</h6>
+                <div class="row g-2">
+                    <div v-for="album in unrankedTopSongsPerAlbum" :key="album.id" class="col-6 col-md-auto">
+                        <div class="card h-100"
+                            :style="{ backgroundColor: theme.light_two, color: theme.dark_one, border: '1px solid ' + (theme.dark_one || '#000') + '22' }">
+                            <div class="px-2 pt-1 pb-0"
+                                :style="{ borderBottom: '1px solid ' + (theme.dark_one || '#000') + '22' }">
+                                <span style="font-size: 0.72rem; font-weight: 600; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" :style="{ color: theme.dark_one }">{{ album.title }}</span>
+                            </div>
+                            <ul class="list-unstyled mb-0 px-2 pt-1 pb-0">
+                                <li v-for="song in album.topSongs" :key="song.id"
+                                    class="d-flex justify-content-between align-items-center gap-1 album-song-row">
+                                    <span style="font-size: 0.78rem; line-height: 1.2;" :style="{ color: theme.dark_one }">#{{ song.album_ranking }} — {{ song.title }}</span>
+                                    <button class="btn btn-sm p-0 d-flex align-items-center justify-content-center flex-shrink-0"
+                                        style="width: 18px; height: 18px; font-size: 0.8rem; border-radius: 50%;"
+                                        :style="{ backgroundColor: theme.dark_two, color: theme.light_one }"
+                                        @click="addSongToRanking(song)">+</button>
+                                </li>
+                            </ul>
                         </div>
-                        <ul class="list-unstyled mb-0 px-2 py-1">
-                            <li v-for="song in album.topSongs" :key="song.id"
-                                class="d-flex justify-content-between align-items-center py-1">
-                                <span style="font-size: 0.82rem;" :style="{ color: theme.dark_one }">#{{ song.album_ranking }} — {{ song.title }}</span>
-                                <button class="btn btn-sm p-0 ms-2 d-flex align-items-center justify-content-center"
-                                    style="width: 20px; height: 20px; font-size: 0.85rem; border-radius: 50%; flex-shrink: 0;"
-                                    :style="{ backgroundColor: theme.dark_two, color: theme.light_one }"
-                                    @click="addSongToRanking(song)">+</button>
-                            </li>
-                        </ul>
                     </div>
                 </div>
             </div>
@@ -237,6 +241,18 @@ const cancelReset = () => { showConfirmReset.value = false }
 .view-only,
 .view-only .ranked-row {
     cursor: default;
+}
+
+.album-song-row {
+    padding-top: 3px;
+    padding-bottom: 3px;
+}
+
+@media (max-width: 767px) {
+    .album-song-row {
+        padding-top: 1px;
+        padding-bottom: 1px;
+    }
 }
 
 .chevron {
