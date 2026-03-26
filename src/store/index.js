@@ -23,6 +23,8 @@ export default createStore({
     showMain: true,
     layout: "default",
 
+    sidebarOpen: true,
+
     // Auth/session-related
     user: null,
     member: null,
@@ -52,6 +54,9 @@ export default createStore({
     },
     navbarFixed(state) {
       state.isNavFixed = !state.isNavFixed;
+    },
+    toggleSidebar(state) {
+      state.sidebarOpen = !state.sidebarOpen
     },
     setTheme(state, theme) {
       state.theme = theme;

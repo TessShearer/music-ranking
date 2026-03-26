@@ -31,7 +31,6 @@ const fetchSongsAndAlbums = async () => {
 
     const rankedIds = artistSnap.data()?.ranked_song_ids || []
 
-    // Build albums with songs annotated with album_ranking and album title
     albums.value = albumsSnap.docs.map(d => ({
         id: d.id,
         ...d.data(),
@@ -43,7 +42,6 @@ const fetchSongsAndAlbums = async () => {
         })),
     }))
 
-    // Build a flat song map for quick lookup
     const songMap = {}
     albums.value.forEach(album => album.songs.forEach(song => { songMap[song.id] = song }))
 
@@ -61,8 +59,8 @@ const unrankedTopSongsPerAlbum = computed(() => {
         topSongs: album.songs
             .filter(song => song.artist_ranking == null)
             .sort((a, b) => a.album_ranking - b.album_ranking)
-            .slice(0, 3),
-    }))
+            .slice(0, 2),
+    })).filter(album => album.topSongs.length > 0)
 })
 
 const saveRankedIds = async (ids) => {
@@ -94,129 +92,118 @@ const performResetRanking = async () => {
 
 const confirmReset = () => { showConfirmReset.value = true }
 const cancelReset = () => { showConfirmReset.value = false }
-
 </script>
 
 <template>
-    <div v-if="theme" class="card pb-3 my-4" :style="{ backgroundColor: theme.light_two, color: theme.dark_one }">
-        <div class="card-header d-flex justify-content-between align-items-center"
-            :style="{ backgroundColor: theme.light_two, color: theme.dark_one }">
-            <h5 class="mb-0" v-if="!expanded || (expanded && $screen?.mdAndUp)">
-                Entire Ranked Discography
-            </h5>
-            <div>
-                <button v-if="!editing && props.isOwner && expanded" class="btn btn-sm me-2"
-                    :style="{ backgroundColor: theme.dark_two, color: theme.light_two }" @click="editing = true">
-                    I'm Ready to Rank
-                </button>
-                <button v-if="editing && props.isOwner && expanded" class="btn btn-sm ms-2 mx-2"
-                    :style="{ backgroundColor: theme.dark_two, color: theme.light_two }" @click="confirmReset">
-                    Reset Ranking
+    <div v-if="theme" class="card my-4"
+        :style="{ backgroundColor: theme.light_one, color: theme.dark_one, border: '1px solid ' + (theme.dark_one || '#000') + '44' }">
+
+        <!-- Card Header -->
+        <div class="card-header d-flex align-items-center justify-content-between py-2 px-3"
+            :style="{ backgroundColor: theme.light_two, color: theme.dark_one, border: 'none', borderBottom: '1px solid ' + (theme.dark_one || '#000') + '22' }">
+
+            <h6 class="mb-0 fw-semibold" :style="{ color: theme.dark_one }">Entire Ranked Discography</h6>
+
+            <div class="d-flex align-items-center gap-2">
+                <!-- Edit mode: reset + done -->
+                <template v-if="editing && props.isOwner">
+                    <button class="btn btn-sm px-2 py-1"
+                        :style="{ color: theme.dark_one, border: '1px solid ' + theme.dark_one }"
+                        @click="confirmReset">
+                        Reset
+                    </button>
+                    <button class="btn btn-sm px-2 py-1"
+                        :style="{ backgroundColor: theme.dark_two, color: theme.light_one }"
+                        @click="editing = false">
+                        Done
+                    </button>
+                </template>
+
+                <!-- Expanded, view mode: edit rankings button -->
+                <button v-else-if="expanded && props.isOwner" class="btn btn-sm px-2 py-1"
+                    :style="{ backgroundColor: theme.dark_two, color: theme.light_one }"
+                    @click="editing = true">
+                    Edit Rankings
                 </button>
 
-                <button v-if="editing && props.isOwner && expanded" class="btn btn-sm"
-                    :style="{ backgroundColor: theme.dark_two, color: theme.light_two }" @click="editing = false">
-                    Done Ranking
-                </button>
-                <button v-if="!editing" class="btn btn-sm ombre-overlay fs-6"
-                    :style="{ backgroundColor: theme.dark_two, color: theme.light_two }" @click="expanded = !expanded">
-                    {{ expanded ? '-' : '+' }}
+                <!-- Expand / collapse toggle (always visible) -->
+                <button class="btn btn-sm px-2 py-1 d-flex align-items-center justify-content-center"
+                    style="width: 30px; height: 28px;"
+                    :style="{ color: theme.dark_one, border: '1px solid ' + theme.dark_one }"
+                    @click="expanded = !expanded">
+                    <span class="chevron" :class="expanded ? 'chevron-up' : 'chevron-down'"></span>
                 </button>
             </div>
         </div>
-        <div v-if="expanded" class="card-body" :style="{ backgroundColor: theme.light_two, color: theme.dark_one }">
-            <table class="table">
-                <thead>
-                    <tr>
-                        <th>#</th>
-                        <th>Title</th>
-                        <!-- Hide album column on small screens -->
-                        <th class="d-none d-sm-table-cell">Album</th>
-                    </tr>
-                </thead>
 
-                <!-- Editable Draggable Rows -->
-                <draggable v-if="editing && props.isOwner" v-model="rankedList" item-key="id" tag="tbody"
-                    @end="updateSongOrder">
-                    <template #item="{ element: song, index }">
-                        <tr>
+        <!-- Expanded body -->
+        <div v-if="expanded" class="card-body py-2 px-3">
 
-                            <td>
-                                <button v-if="editing && props.isOwner"
-                                    class="btn btn-sm btn-outline-danger py-0 px-2 mx-2 my-auto" style="font-size: 0.75rem;"
-                                    @click="removeSongFromRanking(song)" title="Remove from ranked list">
-                                     - 
-                                </button>{{ index + 1 }}
-                            </td>
-                            <td class="d-flex justify-content-between align-items-center w-100">
-                                <span>{{ song.title }}</span>
-                            </td>
+            <!-- Draggable ranked list (edit mode) -->
+            <draggable v-if="editing && props.isOwner" v-model="rankedList" item-key="id" tag="ul"
+                class="ranked-list mb-0" @end="updateSongOrder">
+                <template #item="{ element: song, index }">
+                    <li class="ranked-row d-flex align-items-center px-1 py-1"
+                        :style="{ color: theme.dark_one }">
+                        <button class="btn btn-sm btn-link text-danger p-0 lh-1 me-2" style="font-size: 0.8rem;"
+                            @click="removeSongFromRanking(song)" title="Remove">×</button>
+                        <span class="text-muted me-2" style="font-size: 0.8rem; min-width: 1.5rem;">#{{ index + 1 }}</span>
+                        <span class="flex-grow-1" style="font-size: 0.9rem;">{{ song.title }}</span>
+                        <span style="font-size: 0.78rem; opacity: 0.6;">{{ song.albums.title }}</span>
+                    </li>
+                </template>
+            </draggable>
 
-                            <!-- Album name (mobile hidden) -->
-                            <td class="d-none d-sm-table-cell">
-                                {{ song.albums.title }}
-                            </td>
-                        </tr>
-                    </template>
-                </draggable>
+            <!-- Read-only ranked list -->
+            <ul v-else class="ranked-list mb-0 view-only">
+                <li v-if="rankedList.length === 0" class="ranked-row px-1 py-2 text-center"
+                    :style="{ color: theme.dark_one + '88' }">
+                    No songs ranked yet.
+                </li>
+                <li v-for="(song, index) in rankedList" :key="song.id"
+                    class="ranked-row d-flex align-items-center px-1 py-1 view-only"
+                    :style="{ color: theme.dark_one }">
+                    <span class="text-muted me-2" style="font-size: 0.8rem; min-width: 1.5rem;">#{{ index + 1 }}</span>
+                    <span class="flex-grow-1" style="font-size: 0.9rem;">{{ song.title }}</span>
+                    <span style="font-size: 0.78rem; opacity: 0.6;">{{ song.albums.title }}</span>
+                </li>
+            </ul>
 
-                <!-- Read-only view -->
-                <tbody v-else class="view-only">
-                    <tr v-if="rankedList.length === 0">
-                        <td colspan="3" class="text-center view-only text-muted py-3">
-                            No songs ranked yet.
-                        </td>
-                    </tr>
-                    <tr v-for="(song, index) in rankedList" :key="song.id" class="view-only">
-                        <td>{{ index + 1 }}</td>
-                        <td>
-                            {{ song.title }}
-                            <div class="text-muted small d-sm-none">
-                                {{ song.albums.title }}
-                            </div>
-                        </td>
-                        <td class="d-none d-sm-table-cell">
-                            {{ song.albums.title }}
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-
-
-            <!-- Ranking Section -->
-            <div v-if="editing && props.isOwner">
-                <h6 class="mt-4 mb-2">Top Unranked Songs Per Album</h6>
+            <!-- Add from albums (edit mode) -->
+            <div v-if="editing && props.isOwner" class="mt-4">
+                <h6 class="mb-3 fw-semibold" :style="{ color: theme.dark_one }">Add from Albums</h6>
                 <div class="d-flex flex-wrap gap-3">
-                    <div v-for="album in unrankedTopSongsPerAlbum" :key="album.id" class="card small-album-card"
-                        :style="{ backgroundColor: theme.light_two, color: theme.dark_one, minWidth: '200px', maxWidth: '240px' }">
-                        <div class="card-header py-2 px-3">
-                            <strong>{{ album.title }}</strong>
+                    <div v-for="album in unrankedTopSongsPerAlbum" :key="album.id" class="card"
+                        :style="{ backgroundColor: theme.light_two, color: theme.dark_one, border: '1px solid ' + (theme.dark_one || '#000') + '22', minWidth: '180px', maxWidth: '220px' }">
+                        <div class="card-header py-1 px-3"
+                            :style="{ backgroundColor: theme.light_two, borderBottom: '1px solid ' + (theme.dark_one || '#000') + '22', border: 'none' }">
+                            <strong style="font-size: 0.85rem;" :style="{ color: theme.dark_one }">{{ album.title }}</strong>
                         </div>
-                        <ul class="list-group list-group-flush h-100">
-                            <li v-for="(song, index) in album.topSongs" :key="song.id"
-                                class="list-group-item d-flex justify-content-between align-items-center py-1 px-2 h-100"
-                                :class="{ 'text-muted': index === 2, 'bg-light': index === 2 }">
-                                <span style="font-size: 0.85rem;">#{{ song.album_ranking }} - {{ song.title }}</span>
-                                <button v-if="index < 2" class="btn btn-sm btn-outline-success my-auto py-0 px-2"
-                                    style="font-size: 0.75rem;" @click="addSongToRanking(song)">
-                                    +
-                                </button>
+                        <ul class="list-unstyled mb-0 px-2 py-1">
+                            <li v-for="song in album.topSongs" :key="song.id"
+                                class="d-flex justify-content-between align-items-center py-1">
+                                <span style="font-size: 0.82rem;" :style="{ color: theme.dark_one }">#{{ song.album_ranking }} — {{ song.title }}</span>
+                                <button class="btn btn-sm p-0 ms-2 d-flex align-items-center justify-content-center"
+                                    style="width: 20px; height: 20px; font-size: 0.85rem; border-radius: 50%; flex-shrink: 0;"
+                                    :style="{ backgroundColor: theme.dark_two, color: theme.light_one }"
+                                    @click="addSongToRanking(song)">+</button>
                             </li>
                         </ul>
                     </div>
                 </div>
-
             </div>
+
         </div>
 
         <p v-if="error" class="text-danger m-3">{{ error }}</p>
     </div>
 
+    <!-- Reset confirm modal -->
     <div v-if="showConfirmReset" class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5);">
         <div class="modal-dialog">
             <div class="modal-content" :style="{ backgroundColor: theme.light_two, color: theme.dark_one }">
                 <div class="modal-header">
-                    <h5 class="modal-title">Confirm Reset</h5>
+                    <h5 class="modal-title" :style="{ color: theme.dark_one }">Confirm Reset</h5>
                     <button type="button" class="btn-close" @click="cancelReset"></button>
                 </div>
                 <div class="modal-body">
@@ -229,38 +216,42 @@ const cancelReset = () => { showConfirmReset.value = false }
             </div>
         </div>
     </div>
-
 </template>
 
 <style scoped>
-.bg-light {
-    opacity: 0.5;
-    transition: opacity 0.3s ease-in;
+.ranked-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
 }
 
-.draggable-fade-enter-active,
-.draggable-fade-leave-active {
-    transition: opacity 0.2s;
-}
-
-.draggable-fade-enter-from,
-.draggable-fade-leave-to {
-    opacity: 0;
-}
-
-tr {
+.ranked-row {
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
     cursor: grab;
 }
 
-.modal {
-    z-index: 1055;
+.ranked-row:last-child {
+    border-bottom: none;
 }
 
-.modal-content {
-    border-radius: 0.5rem;
+.view-only,
+.view-only .ranked-row {
+    cursor: default;
 }
 
-.view-only {
-  cursor: default;
+.chevron {
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    border-right: 2px solid currentColor;
+    border-bottom: 2px solid currentColor;
+}
+
+.chevron-down {
+    transform: rotate(45deg) translate(-1px, -1px);
+}
+
+.chevron-up {
+    transform: rotate(-135deg) translate(-1px, -1px);
 }
 </style>

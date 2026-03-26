@@ -31,6 +31,7 @@ const layout = computed(() => store.state.layout);
 const showNavbar = computed(() => store.state.showNavbar);
 const showFooter = computed(() => store.state.showFooter);
 const theme = computed(() => store.state.theme);
+const sidebarOpen = computed(() => store.state.sidebarOpen);
 
 const route = useRoute();
 
@@ -71,7 +72,8 @@ watch(theme, (newTheme) => {
 
   <sidenav v-if="showSidenav" />
 
-  <main class="main-content position-relative max-height-vh-100 h-100 border-radius-lg">
+  <main class="main-content position-relative max-height-vh-100 h-100 border-radius-lg"
+    :class="{ 'sidebar-open': sidebarOpen }">
     <!-- nav -->
 
     <navbar :class="[navClasses]" v-if="showNavbar && !route.meta.hideNavbar" />
@@ -83,3 +85,16 @@ watch(theme, (newTheme) => {
 
   </main>
 </template>
+
+<style>
+.main-content {
+  transition: margin-left 0.3s ease;
+  margin-left: 0;
+}
+
+@media (min-width: 992px) {
+  .main-content.sidebar-open {
+    margin-left: 15.625rem;
+  }
+}
+</style>

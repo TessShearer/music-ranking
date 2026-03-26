@@ -36,7 +36,7 @@ defineProps({
 });
 </script>
 <template>
-  <router-link :to="to" class="nav-link my-2 rounded" :style="{ backgroundColor: background, color: text }" @click="minimizeSidebar">
+  <router-link :to="to" class="nav-link my-2 px-3" :style="{ backgroundColor: background, color: text }" @click="minimizeSidebar">
 
     <div class="icon icon-shape icon-sm text-center d-flex align-items-center justify-content-center">
       <img :src="path ? path : '/themes/settings.jpg'" alt="Theme Image" class="rounded-circle"

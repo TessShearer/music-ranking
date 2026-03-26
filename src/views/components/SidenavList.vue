@@ -9,7 +9,6 @@ import { getTheme } from "@/themes";
 
 const store = useStore()
 
-const isRTL = computed(() => store.state.isRTL)
 const members = ref([]);
 const user = computed(() => auth.currentUser)
 
@@ -43,7 +42,7 @@ watch(storeMember, (updated) => {
 
 
 <template>
-  <div class="collapse navbar-collapse w-auto h-auto h-100" id="sidenav-collapse-main">
+  <div class="w-100 h-100">
     <ul class="navbar-nav">
 
       <!-- Dynamic member links -->
@@ -52,12 +51,6 @@ watch(storeMember, (updated) => {
           :navText="member.uid === user?.uid ? `${member.member_name} (You)` : member.member_name"
           :path="member.theme?.image" :background="member.theme?.light_one" :text="member.theme?.dark_one"
           :class="getRoute() === `members/${member.uid}/tables` ? 'active' : ''" />
-      </li>
-
-      <!-- Settings link -->
-      <li class="nav-item">
-        <sidenav-item to="/profile" :path="'/themes/settings.jpg'" :background="'#ffffff'" :text="'#212529'"
-          :class="getRoute() === 'profile' ? 'active' : ''" :navText="isRTL ? 'حساب تعريفي' : 'Edit Settings'" />
       </li>
 
     </ul>

@@ -2,23 +2,22 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useStore } from 'vuex'
 import { useRouter } from 'vue-router'
+import { db } from '@/firebaseClient'
+import { collection, getDocs } from 'firebase/firestore'
+import { getTheme } from '@/themes'
 import menu from '@/assets/img/icons/menu.png'
 
 const store = useStore()
 const router = useRouter()
 
-const isRTL = computed(() => store.state.isRTL)
 const user = computed(() => store.state.user)
-const members = ref([]);
 const theme = computed(() => store.state.theme)
 const showDropdown = ref(false)
+const members = ref([])
 
 const userName = computed(() => user.value?.displayName || user.value?.email || 'Guest')
 
-// Refs for detecting outside click
 const dropdownRef = ref(null)
-
-// members will be populated once the database is connected
 
 const toggleDropdown = () => {
   showDropdown.value = !showDropdown.value
@@ -30,8 +29,14 @@ const handleClickOutside = (event) => {
   }
 }
 
-onMounted(() => {
+onMounted(async () => {
   document.addEventListener('click', handleClickOutside)
+  const snap = await getDocs(collection(db, 'members'))
+  members.value = snap.docs.map(d => ({
+    uid: d.id,
+    ...d.data(),
+    theme: getTheme(d.data().theme_id ?? 0),
+  }))
 })
 
 onUnmounted(() => {
@@ -47,59 +52,52 @@ const handleLogout = async () => {
 
 
 <template>
-  <nav class="navbar navbar-main navbar-expand-lg px-0 m-4 shadow border-radius-xl" :class="[
-      isRTL ? 'top-0 position-sticky z-index-sticky' : '',
-      'position-sticky w-90'
-    ]" :style="{ backgroundColor: theme?.light_two || '#f5f5f5', zIndex: 1050 }" id="navbarBlur" data-scroll="true">
+  <nav class="navbar navbar-main navbar-expand-lg px-0 m-4 shadow border-radius-xl d-lg-none"
+    :style="{ backgroundColor: theme?.light_two || '#f5f5f5', zIndex: 1050 }" id="navbarBlur" data-scroll="true">
     <div class="px-3 py-1 container-fluid d-flex justify-content-between align-items-center">
 
-      <!-- Mobile-only dropdown toggle -->
-      <div class="d-xl-none position-relative" ref="dropdownRef">
+      <!-- Mobile dropdown toggle -->
+      <div class="position-relative" ref="dropdownRef">
         <button class="btn btn-outline my-auto" @click="toggleDropdown">
           <img :src="menu" alt="Menu" class="img-fluid" style="max-height: 18px;" />
         </button>
 
         <ul v-if="showDropdown" class="position-absolute mt-2 shadow rounded dropdown-menu d-block"
           style="left: 0; z-index: 2000; min-width: 200px"
-          :style="{ backgroundColor: theme?.light_one || '#fff', color: theme?.dark_one }">
-          <li class="m-2 p-1 rounded" v-for="member in members" :key="member.music_id"
-            :style="{ backgroundColor: member?.themes?.light_one || '#fff', color: member?.themes?.dark_one }">
+          :style="{ backgroundColor: theme?.light_one || '#fff' }">
+          <li class="m-2 p-1 rounded" v-for="member in members" :key="member.uid"
+            :style="{ backgroundColor: member.theme?.light_one || '#fff' }">
             <router-link class="dropdown-item d-flex align-items-center gap-2"
-              :to="`/members/${member.music_id}/tables`">
-              <img :src="member?.themes?.image" alt="Theme Artist" class="rounded-circle"
+              :to="`/members/${member.uid}/tables`" @click="showDropdown = false">
+              <img :src="member.theme?.image" alt="Theme Artist" class="rounded-circle"
                 style="width: 32px; height: 32px; object-fit: cover;" />
-              <span :style="{ color: member?.themes?.dark_one }">
-                {{ member.member_id === user?.id ? `${member.member_name} (You)` : member.member_name }}
+              <span :style="{ color: member.theme?.dark_one }">
+                {{ member.uid === user?.uid ? `${member.member_name} (You)` : member.member_name }}
               </span>
             </router-link>
-
           </li>
-          <li>
-            <hr class="dropdown-divider" />
+          <li><hr class="dropdown-divider" /></li>
+          <li class="m-2 p-1 rounded">
+            <router-link class="dropdown-item d-flex align-items-center gap-2" to="/profile"
+              @click="showDropdown = false">
+              <img src="/themes/settings.jpg" alt="Settings" class="rounded-circle"
+                style="width: 32px; height: 32px; object-fit: cover;" />
+              <span :style="{ color: theme?.dark_one }">Edit Settings</span>
+            </router-link>
           </li>
-          <li class="m-2 p-1 rounded"><router-link class="dropdown-item d-flex align-items-center gap-2" to="/profile">
-              <div class="icon icon-shape icon-sm text-center d-flex align-items-center justify-content-center">
-                <img src="/themes/settings.jpg" alt="Settings" class="rounded-circle"
-                  style="min-width: 4vh; min-height: 4vh; object-fit: cover;" />
-              </div>
-              <span :style="{ color: theme?.dark_one }"> Profile</span>
-            </router-link></li>
-
+          <li><hr class="dropdown-divider" /></li>
+          <li class="m-2 p-1">
+            <button class="btn btn-sm w-100"
+              :style="{ backgroundColor: theme?.dark_two || '#344767', color: theme?.light_one || '#fff' }"
+              @click="handleLogout">
+              Logout
+            </button>
+          </li>
         </ul>
       </div>
 
-      <!-- Optionally hide on mobile, keep on desktop -->
-      <div class="d-none d-xl-block">
-        <h6 class="mb-0" :style="{ color: theme?.dark_one || '#344767' }">Welcome, {{ userName }}</h6>
-      </div>
+      <h6 class="mb-0" :style="{ color: theme?.dark_one || '#344767' }">Welcome, {{ userName }}</h6>
 
-      <div>
-        <button class="btn btn-outline-info btn-sm my-1 mx-4"
-          :style="{ borderColor: theme?.dark_two || '#17a2b8', color: theme?.dark_two || '#17a2b8' }"
-          @click="handleLogout">
-          Logout
-        </button>
-      </div>
     </div>
   </nav>
 </template>

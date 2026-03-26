@@ -88,7 +88,7 @@ const deleteConfirmed = async () => {
       <div class="page-header min-height-250" :style="{
         backgroundImage: theme?.header ? `url(${theme.header})` : '',
         backgroundSize: 'cover',
-        backgroundPosition: 'center',
+        backgroundPosition: theme?.header_position || 'center',
         marginRight: '-24px',
         marginLeft: '-34%',
         marginTop: '-5%',

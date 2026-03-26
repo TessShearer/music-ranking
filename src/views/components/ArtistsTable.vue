@@ -60,7 +60,7 @@ const handleArtistAdded = () => {
     <ArtistAddCard v-if="showArtistModal" :memberUid="memberUid" :theme="theme" @cancel="showArtistModal = false"
       @added="handleArtistAdded" />
 
-    <div class="card mt-n6" :style="{ backgroundColor: tableBackground }">
+    <div class="card mt-n6" :style="{ backgroundColor: tableBackground, border: '1px solid ' + (props.theme?.dark_one || '#000') + '44' }">
       <div class="card-body px-0 pt-0 pb-2">
 
         <!-- Visible on md and up -->
@@ -71,7 +71,7 @@ const handleArtistAdded = () => {
                 <th :style="{ color: tableTextColor }">Artist</th>
                 <th :style="{ color: tableTextColor }">Albums</th>
                 <th :style="{ color: tableTextColor }">Songs</th>
-                <th>Rankings</th>
+                <th :style="{ color: tableTextColor }">Rankings</th>
               </tr>
             </thead>
             <tbody>
@@ -88,7 +88,7 @@ const handleArtistAdded = () => {
                 <td>
                   <button class="btn btn-outline" @click="$router.push(`/artists/${memberUid}/${artist.id}`)"
                     :style="{ color: props.theme?.dark_one, border: 'solid 1px ' + props.theme?.dark_one }">
-                    {{ isOwner ? 'Rank' : 'View Rankings' }}
+                    {{ isOwner ? 'Rank Artist' : 'View Rankings' }}
                   </button>
                 </td>
               </tr>
