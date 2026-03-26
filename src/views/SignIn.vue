@@ -29,8 +29,9 @@ onBeforeUnmount(() => {
 })
 
 onMounted(() => {
-  if (store.state.user || auth.currentUser) {
-    router.push('/')
+  const currentUser = store.state.user || auth.currentUser
+  if (currentUser) {
+    router.push(`/members/${currentUser.uid}/tables`)
   }
 })
 
@@ -42,7 +43,7 @@ const signIn = async () => {
 
     store.commit('setUser', user)
     const hasMember = await store.dispatch('fetchMember', user.uid)
-    await router.push(hasMember ? '/' : '/create-member')
+    await router.push(hasMember ? `/members/${user.uid}/tables` : '/create-member')
   } catch (err) {
     errorMessage.value = err.message
   }

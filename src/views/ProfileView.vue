@@ -2,7 +2,7 @@
 import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue';
 import { useStore } from 'vuex';
 import { auth, db } from '@/firebaseClient';
-import { doc, updateDoc } from 'firebase/firestore';
+import { doc, updateDoc, collection, getDocs, writeBatch } from 'firebase/firestore';
 import ArgonInput from '@/components/ArgonInput.vue';
 import { useRouter } from 'vue-router'
 import { themes as themeConfig } from '@/themes'
@@ -74,8 +74,25 @@ const openDeleteModal = () => {
 };
 
 const deleteConfirmed = async () => {
-  // TODO: delete all user data from Firestore once artists/albums/songs are implemented
-  await store.dispatch('logout')
+  const uid = auth.currentUser.uid
+  const batch = writeBatch(db)
+
+  // Delete all albums under each artist, then the artist docs
+  const artistsSnap = await getDocs(collection(db, 'members', uid, 'artists'))
+  for (const artistDoc of artistsSnap.docs) {
+    const albumsSnap = await getDocs(collection(db, 'members', uid, 'artists', artistDoc.id, 'albums'))
+    albumsSnap.docs.forEach(a => batch.delete(a.ref))
+    batch.delete(artistDoc.ref)
+  }
+
+  // Delete the member doc
+  batch.delete(doc(db, 'members', uid))
+  await batch.commit()
+
+  // Delete the Firebase Auth account
+  await auth.currentUser.delete()
+
+  store.commit('clearAuth')
   router.push('/signin')
 };
 </script>

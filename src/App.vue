@@ -70,7 +70,7 @@ watch(theme, (newTheme) => {
 <template>
   <div v-show="layout === 'landing'" class="landing-bg h-100 bg-gradient-primary position-fixed w-100"></div>
 
-  <sidenav v-if="showSidenav" />
+  <sidenav v-if="showSidenav && layout !== 'auth'" />
 
   <main class="main-content position-relative max-height-vh-100 h-100 border-radius-lg"
     :class="{ 'sidebar-open': sidebarOpen }">

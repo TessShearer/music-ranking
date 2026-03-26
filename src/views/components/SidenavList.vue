@@ -20,11 +20,17 @@ const getRoute = () => {
 
 onMounted(async () => {
   const snap = await getDocs(collection(db, 'members'));
-  members.value = snap.docs.map(d => ({
+  const list = snap.docs.map(d => ({
     uid: d.id,
     ...d.data(),
     theme: getTheme(d.data().theme_id ?? 0),
   }));
+  const currentUid = auth.currentUser?.uid
+  members.value = list.sort((a, b) => {
+    if (a.uid === currentUid) return -1
+    if (b.uid === currentUid) return 1
+    return 0
+  })
 });
 
 // When the current user's member data changes in the store (e.g. theme update),
