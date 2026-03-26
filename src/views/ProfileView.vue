@@ -99,8 +99,8 @@ const deleteConfirmed = async () => {
       <div class="card shadow-lg mt-n8" :style="{ backgroundColor: theme?.light_one || '#f5f5f5' }">
         <div class="card-body p-3 d-inline-flex justify-content-between">
           <div class="h-100 px-4">
-            <h5 class="mb-1">{{ member?.member_name || '...' }}</h5>
-            <p class="mb-0 font-weight-bold text-sm">Customize your profile and theme</p>
+            <h5 class="mb-1" :style="{ color: theme?.dark_one }">{{ member?.member_name || '...' }}</h5>
+            <p class="mb-0 font-weight-bold text-sm" :style="{ color: theme?.dark_one }">Customize your profile and theme</p>
           </div>
           <div>
             <button class="btn"
@@ -127,7 +127,7 @@ const deleteConfirmed = async () => {
           <hr class="horizontal dark" />
 
           <div class="col-md-6 mt-3">
-            <label class="form-control-label" :style="{ color: theme?.dark_one }">Private Profile</label>
+            <label class="form-control-label" :style="{ color: theme?.dark_one }">Public/Private Profile</label>
             <div class="form-check form-switch">
               <input class="form-check-input" type="checkbox" id="privateSwitch" v-model="isPrivate" />
               <label class="form-check-label" :style="{ color: theme?.dark_one }" for="privateSwitch">

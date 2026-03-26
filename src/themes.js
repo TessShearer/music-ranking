@@ -16,7 +16,7 @@ export const themes = {
     dark_one:  '#212529',
     dark_two:  '#495057',
     header: null,
-    image: '/themes/settings.jpg',
+    image: '/themes/note.png',
   },
   1: {
     id: 1,

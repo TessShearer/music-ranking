@@ -1,10 +1,11 @@
 <script setup>
-import { ref, onMounted, computed, watch } from 'vue'
+import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useStore } from 'vuex'
 
-import { auth } from '@/firebaseClient'
-// TODO: replace with Firestore queries once database is connected
+import { auth, db } from '@/firebaseClient'
+import { doc, getDoc } from 'firebase/firestore'
+import { getTheme } from '@/themes'
 import ArtistsTable from './components/ArtistsTable.vue'
 
 const route = useRoute()
@@ -18,8 +19,17 @@ const member = ref(null)
 const isOwner = ref(false)
 
 const loadMember = async () => {
-  // TODO: load member from Firestore once database is connected
+  const snap = await getDoc(doc(db, 'members', musicId.value))
+  if (snap.exists()) {
+    member.value = { uid: snap.id, ...snap.data() }
+    isOwner.value = loggedInUser.value?.uid === snap.id
+    store.commit('setTheme', getTheme(snap.data().theme_id ?? 0))
+  }
 }
+
+onUnmounted(() => {
+  store.commit('setTheme', getTheme(store.state.member?.theme_id ?? 0))
+})
 
 // Watch for user becoming available after a refresh
 watch(loggedInUser, async (user) => {
@@ -72,7 +82,7 @@ onMounted(async () => {
     </div>
     <div class="row">
       <div class="col-12">
-        <artists-table :memberMusicId="member?.music_id" :theme="theme" :isOwner="isOwner" />
+        <artists-table :memberUid="member?.uid" :theme="theme" :isOwner="isOwner" />
       </div>
     </div>
   </div>

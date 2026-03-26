@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useStore } from 'vuex'
 import { useRoute, useRouter } from 'vue-router'
 import draggable from 'vuedraggable'
@@ -8,24 +8,23 @@ import trash from '@/assets/img/icons/trash.png'
 import note from '@/assets/img/icons/note.png'
 import menu from '@/assets/img/icons/menu.png'
 import pencil from '@/assets/img/icons/pencil.png'
+import { auth, db } from '@/firebaseClient'
+import { getTheme } from '@/themes'
+import { doc, getDoc, collection, getDocs, addDoc, updateDoc, deleteDoc, query, orderBy, writeBatch } from 'firebase/firestore'
 
 const store = useStore()
 const route = useRoute()
 const router = useRouter()
 const memberId = route.params.memberId
+const artistId = route.params.artistId
 const showModal = ref(false)
 const modalMessage = ref('')
 const modalAction = ref(null)
 
 const user = computed(() => store.state.user)
-const signedInMember = computed(() => store.state.member)
 const theme = computed(() => store.state.theme)
 const isLoggedIn = computed(() => !!user.value)
-const isOwner = computed(() =>
-  isLoggedIn.value &&
-  signedInMember.value &&
-  signedInMember.value.music_id == memberId
-)
+const isOwner = computed(() => isLoggedIn.value && user.value?.uid === memberId)
 
 const artist = ref(null)
 const member = ref(null)
@@ -46,53 +45,12 @@ const editingRanking = ref(false)
 function showToastMessage(message, timeout = 3000) {
   toastMessage.value = message
   showToast.value = true
-  setTimeout(() => {
-    showToast.value = false
-    toastMessage.value = ''
-  }, timeout)
-}
-
-const saveAlbumTitle = async () => {
-  // TODO: update album title in Firestore once database is connected
-  await loadAlbums()
-}
-
-const loadAlbums = async () => {
-  // TODO: load albums from Firestore once database is connected
-  albums.value = []
-}
-
-
-const updateSongOrder = async () => {
-  // TODO: update song order in Firestore once database is connected
-  await loadAlbums()
-}
-
-const updateAlbumOrder = async () => {
-  // TODO: update album order in Firestore once database is connected
-  await loadAlbums()
-}
-
-const addAlbum = async () => {
-  if (!newAlbumName.value.trim()) return
-  // TODO: insert album into Firestore once database is connected
-  newAlbumName.value = ''
-  showAlbumInput.value = false
-  await loadAlbums()
-}
-
-const addSong = async (_albumId, songName) => {
-  if (!songName.trim()) return
-  // TODO: insert song into Firestore once database is connected
-  await loadAlbums()
+  setTimeout(() => { showToast.value = false; toastMessage.value = '' }, timeout)
 }
 
 function showConfirmModal(message, action) {
   modalMessage.value = message
-  modalAction.value = () => {
-    action()
-    closeModal()
-  }
+  modalAction.value = () => { action(); closeModal() }
   showModal.value = true
 }
 
@@ -102,42 +60,89 @@ function closeModal() {
   modalAction.value = null
 }
 
-onMounted(async () => {
-  // TODO: load artist, member, and albums from Firestore once database is connected
+const albumsRef = () => collection(db, 'members', memberId, 'artists', artistId, 'albums')
+const albumRef = (albumId) => doc(db, 'members', memberId, 'artists', artistId, 'albums', albumId)
+
+const loadAlbums = async () => {
+  const snap = await getDocs(query(albumsRef(), orderBy('rank')))
+  albums.value = snap.docs.map(d => ({
+    addingSong: false,
+    newSongName: '',
+    songs: [],
+    ...d.data(),
+    id: d.id,
+  }))
+}
+
+const addAlbum = async () => {
+  if (!newAlbumName.value.trim()) return
+  await addDoc(albumsRef(), { title: newAlbumName.value.trim(), rank: albums.value.length, songs: [] })
+  newAlbumName.value = ''
+  showAlbumInput.value = false
   await loadAlbums()
-})
+}
+
+const saveAlbumTitle = async (albumId) => {
+  await updateDoc(albumRef(albumId), { title: editedAlbumTitle.value })
+  await loadAlbums()
+}
+
+const addSong = async (albumId, songName) => {
+  if (!songName.trim()) return
+  const snap = await getDoc(albumRef(albumId))
+  const songs = snap.data().songs || []
+  songs.push({ id: crypto.randomUUID(), title: songName.trim(), note: '' })
+  await updateDoc(albumRef(albumId), { songs })
+  await loadAlbums()
+}
+
+const deleteSong = async (songId) => {
+  for (const album of albums.value) {
+    if (album.songs.some(s => s.id === songId)) {
+      await updateDoc(albumRef(album.id), { songs: album.songs.filter(s => s.id !== songId) })
+      break
+    }
+  }
+  await loadAlbums()
+}
+
+const updateSongOrder = async (album) => {
+  await updateDoc(albumRef(album.id), { songs: album.songs.map(({ id, title, note }) => ({ id, title, note })) })
+}
+
+const updateAlbumOrder = async () => {
+  const batch = writeBatch(db)
+  albums.value.forEach((album, index) => batch.update(albumRef(album.id), { rank: index }))
+  await batch.commit()
+}
+
+const deleteAlbum = (albumId) => {
+  showConfirmModal(
+    'Are you sure you want to delete this album? This will permanently delete the album and all its songs.',
+    async () => { await deleteAlbumConfirmed(albumId); showToastMessage('Album deleted successfully.') }
+  )
+}
+
+async function deleteAlbumConfirmed(albumId) {
+  await deleteDoc(albumRef(albumId))
+  await loadAlbums()
+}
 
 const deleteArtist = () => {
   showConfirmModal(
     'Are you sure you want to delete this artist? This will permanently delete all albums and songs associated with them.',
-    async () => {
-      await deleteArtistConfirmed()
-    }
+    async () => { await deleteArtistConfirmed() }
   )
 }
 
 const deleteArtistConfirmed = async () => {
-  // TODO: delete artist, albums, and songs from Firestore once database is connected
+  const snap = await getDocs(albumsRef())
+  const batch = writeBatch(db)
+  snap.docs.forEach(d => batch.delete(d.ref))
+  batch.delete(doc(db, 'members', memberId, 'artists', artistId))
+  await batch.commit()
   showToastMessage('Artist deleted successfully.')
-  router.push('/')
-}
-
-
-const deleteAlbum = (albumId) => {
-  showConfirmModal('Are you sure you want to delete this album? This will permanently delete the album and all its songs.', async () => {
-    await deleteAlbumConfirmed(albumId)
-    showToastMessage('Album deleted successfully.')
-  })
-}
-
-async function deleteAlbumConfirmed() {
-  // TODO: delete album and its songs from Firestore once database is connected
-  await loadAlbums()
-}
-
-const deleteSong = async () => {
-  // TODO: delete song from Firestore once database is connected
-  await loadAlbums()
+  router.push(`/members/${memberId}/tables`)
 }
 
 const openNoteModal = (song) => {
@@ -147,10 +152,34 @@ const openNoteModal = (song) => {
 }
 
 const saveNote = async () => {
-  // TODO: update note in Firestore once database is connected
+  const album = albums.value.find(a => a.songs.some(s => s.id === currentNoteSong.value.id))
+  if (album) {
+    const songs = album.songs.map(s => s.id === currentNoteSong.value.id ? { ...s, note: noteText.value } : s)
+    await updateDoc(albumRef(album.id), { songs })
+  }
   currentNoteSong.value.note = noteText.value
   showNoteModal.value = false
 }
+
+onMounted(async () => {
+  await auth.authStateReady()
+  if (auth.currentUser && !user.value) store.commit('setUser', auth.currentUser)
+
+  const [memberSnap, artistSnap] = await Promise.all([
+    getDoc(doc(db, 'members', memberId)),
+    getDoc(doc(db, 'members', memberId, 'artists', artistId)),
+  ])
+  if (memberSnap.exists()) {
+    member.value = { uid: memberSnap.id, ...memberSnap.data() }
+    store.commit('setTheme', getTheme(memberSnap.data().theme_id ?? 0))
+  }
+  if (artistSnap.exists()) artist.value = { id: artistSnap.id, ...artistSnap.data() }
+  await loadAlbums()
+})
+
+onUnmounted(() => {
+  store.commit('setTheme', getTheme(store.state.member?.theme_id ?? 0))
+})
 
 </script>
 
@@ -177,7 +206,7 @@ const saveNote = async () => {
     <!-- Album Ranking on Top -->
     <div class="row mb-4">
       <div class="col-12">
-        <artist-ranking-card :theme="theme" :albums="albums" :isOwner="isOwner" />
+        <artist-ranking-card :theme="theme" :isOwner="isOwner" :memberId="memberId" :artistId="artistId" />
 
         <div class="card" :style="{ backgroundColor: theme?.light_one, color: theme?.dark_one }">
           <div class="card-body">
@@ -321,7 +350,7 @@ const saveNote = async () => {
                   </h5>
 
                   <!-- Album Edit Actions -->
-                  <div class="d-flex align-items-center gap-2 mt-2 mt-sm-0" v-if="editingAlbumId === album.id">
+                  <div class="d-flex align-items-center gap-2 mt-2 mt-sm-0" v-if="editingAlbumId === album.id && editingAlbumNameId !== album.id">
                     <button class="btn btn-sm btn-outline-success"
                       :style="{ color: theme?.dark_one, borderColor: theme?.dark_one }"
                       @click="saveAlbumTitle(album.id), editingAlbumId = null">

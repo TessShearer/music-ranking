@@ -1,9 +1,11 @@
 <script setup>
-import { computed, ref } from "vue"
+import { computed, ref, onMounted, watch } from "vue"
 import { useRoute } from "vue-router"
 import { useStore } from "vuex"
 import SidenavItem from "./SidenavItem.vue"
-import { auth } from "@/firebaseClient";
+import { auth, db } from "@/firebaseClient";
+import { collection, getDocs } from "firebase/firestore";
+import { getTheme } from "@/themes";
 
 const store = useStore()
 
@@ -17,7 +19,25 @@ const getRoute = () => {
   return routeArr[1] + (routeArr[2] ? `/${routeArr[2]}` : "")
 }
 
-// members will be populated once the database is connected
+onMounted(async () => {
+  const snap = await getDocs(collection(db, 'members'));
+  members.value = snap.docs.map(d => ({
+    uid: d.id,
+    ...d.data(),
+    theme: getTheme(d.data().theme_id ?? 0),
+  }));
+});
+
+// When the current user's member data changes in the store (e.g. theme update),
+// sync the updated entry into the local members list
+const storeMember = computed(() => store.state.member)
+watch(storeMember, (updated) => {
+  if (!updated || !auth.currentUser) return;
+  const idx = members.value.findIndex(m => m.uid === auth.currentUser.uid);
+  if (idx !== -1) {
+    members.value[idx] = { ...members.value[idx], ...updated, theme: getTheme(updated.theme_id ?? 0) };
+  }
+});
 
 </script>
 
@@ -27,21 +47,17 @@ const getRoute = () => {
     <ul class="navbar-nav">
 
       <!-- Dynamic member links -->
-      <li class="nav-item" v-for="member in members" :key="member.music_id">
-        <sidenav-item :to="`/members/${member.music_id}/tables`"
-          :navText="member.member_id === user?.uid ? `${member.member_name} (You)` : member.member_name"
+      <li class="nav-item" v-for="member in members" :key="member.uid">
+        <sidenav-item :to="`/members/${member.uid}/tables`"
+          :navText="member.uid === user?.uid ? `${member.member_name} (You)` : member.member_name"
           :path="member.theme?.image" :background="member.theme?.light_one" :text="member.theme?.dark_one"
-          :class="getRoute() === `members/${member.music_id}/tables` ? 'active' : ''" />
+          :class="getRoute() === `members/${member.uid}/tables` ? 'active' : ''" />
       </li>
 
       <!-- Settings link -->
       <li class="nav-item">
-        <sidenav-item to="/profile" color="white" :text="'black'"
-          :class="getRoute() === 'profile' ? 'active' : ''" :navText="isRTL ? 'حساب تعريفي' : 'Edit Settings'">
-          <template #icon>
-            <i class="ni ni-single-02 text-dark text-sm opacity-10"></i>
-          </template>
-        </sidenav-item>
+        <sidenav-item to="/profile" :path="'/themes/settings.jpg'" :background="'#ffffff'" :text="'#212529'"
+          :class="getRoute() === 'profile' ? 'active' : ''" :navText="isRTL ? 'حساب تعريفي' : 'Edit Settings'" />
       </li>
 
     </ul>

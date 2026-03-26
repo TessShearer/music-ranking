@@ -50,7 +50,7 @@ const handleLogout = async () => {
   <nav class="navbar navbar-main navbar-expand-lg px-0 m-4 shadow border-radius-xl" :class="[
       isRTL ? 'top-0 position-sticky z-index-sticky' : '',
       'position-sticky w-90'
-    ]" :style="{ backgroundColor: theme?.light_one || '#ffffff', zIndex: 1050 }" id="navbarBlur" data-scroll="true">
+    ]" :style="{ backgroundColor: theme?.light_two || '#f5f5f5', zIndex: 1050 }" id="navbarBlur" data-scroll="true">
     <div class="px-3 py-1 container-fluid d-flex justify-content-between align-items-center">
 
       <!-- Mobile-only dropdown toggle -->
@@ -90,7 +90,7 @@ const handleLogout = async () => {
 
       <!-- Optionally hide on mobile, keep on desktop -->
       <div class="d-none d-xl-block">
-        <h6 class="mb-0">Welcome, {{ userName }}</h6>
+        <h6 class="mb-0" :style="{ color: theme?.dark_one || '#344767' }">Welcome, {{ userName }}</h6>
       </div>
 
       <div>

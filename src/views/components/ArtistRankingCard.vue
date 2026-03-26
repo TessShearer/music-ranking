@@ -1,10 +1,14 @@
 <script setup>
 import { ref, watchEffect, computed } from 'vue'
 import draggable from 'vuedraggable'
+import { db } from '@/firebaseClient'
+import { doc, getDoc, getDocs, updateDoc, collection, query, orderBy } from 'firebase/firestore'
 
 const props = defineProps({
     theme: Object,
     isOwner: Boolean,
+    memberId: String,
+    artistId: String,
 })
 
 const editing = ref(false)
@@ -15,62 +19,81 @@ const albums = ref([])
 const error = ref(null)
 const showConfirmReset = ref(false)
 
+const artistRef = () => doc(db, 'members', props.memberId, 'artists', props.artistId)
+
 const fetchSongsAndAlbums = async () => {
-    // TODO: fetch from Firestore once database is connected
-    allSongs.value = []
-    rankedList.value = []
-    albums.value = []
+    if (!props.memberId || !props.artistId) return
+
+    const [albumsSnap, artistSnap] = await Promise.all([
+        getDocs(query(collection(db, 'members', props.memberId, 'artists', props.artistId, 'albums'), orderBy('rank'))),
+        getDoc(artistRef()),
+    ])
+
+    const rankedIds = artistSnap.data()?.ranked_song_ids || []
+
+    // Build albums with songs annotated with album_ranking and album title
+    albums.value = albumsSnap.docs.map(d => ({
+        id: d.id,
+        ...d.data(),
+        songs: (d.data().songs || []).map((song, idx) => ({
+            ...song,
+            album_ranking: idx + 1,
+            artist_ranking: rankedIds.includes(song.id) ? rankedIds.indexOf(song.id) + 1 : null,
+            albums: { title: d.data().title },
+        })),
+    }))
+
+    // Build a flat song map for quick lookup
+    const songMap = {}
+    albums.value.forEach(album => album.songs.forEach(song => { songMap[song.id] = song }))
+
+    allSongs.value = Object.values(songMap)
+    rankedList.value = rankedIds.filter(id => songMap[id]).map(id => songMap[id])
 }
 
 watchEffect(() => {
-    if (expanded.value) {
-        fetchSongsAndAlbums()
-    }
+    if (expanded.value) fetchSongsAndAlbums()
 })
 
 const unrankedTopSongsPerAlbum = computed(() => {
-    return albums.value.map(album => {
-        const unranked = album.songs
+    return albums.value.map(album => ({
+        ...album,
+        topSongs: album.songs
             .filter(song => song.artist_ranking == null)
             .sort((a, b) => a.album_ranking - b.album_ranking)
-            .slice(0, 3)
-
-        return {
-            ...album,
-            topSongs: unranked,
-        }
-    })
+            .slice(0, 3),
+    }))
 })
 
-const addSongToRanking = async () => {
-    // TODO: update Firestore once database is connected
+const saveRankedIds = async (ids) => {
+    await updateDoc(artistRef(), { ranked_song_ids: ids })
     await fetchSongsAndAlbums()
+}
+
+const addSongToRanking = async (song) => {
+    const snap = await getDoc(artistRef())
+    const ids = snap.data()?.ranked_song_ids || []
+    if (!ids.includes(song.id)) await saveRankedIds([...ids, song.id])
+}
+
+const removeSongFromRanking = async (song) => {
+    const snap = await getDoc(artistRef())
+    await saveRankedIds((snap.data()?.ranked_song_ids || []).filter(id => id !== song.id))
 }
 
 const updateSongOrder = async () => {
-    // TODO: update Firestore once database is connected
+    await updateDoc(artistRef(), { ranked_song_ids: rankedList.value.map(s => s.id) })
     await fetchSongsAndAlbums()
-}
-
-const confirmReset = () => {
-    showConfirmReset.value = true
-}
-
-const cancelReset = () => {
-    showConfirmReset.value = false
 }
 
 const performResetRanking = async () => {
-    // TODO: reset rankings in Firestore once database is connected
+    await updateDoc(artistRef(), { ranked_song_ids: [] })
     await fetchSongsAndAlbums()
     showConfirmReset.value = false
 }
 
-const removeSongFromRanking = async () => {
-    // TODO: update Firestore once database is connected
-    await fetchSongsAndAlbums()
-}
-
+const confirmReset = () => { showConfirmReset.value = true }
+const cancelReset = () => { showConfirmReset.value = false }
 
 </script>
 

@@ -1,9 +1,11 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import ArtistAddCard from './ArtistAddCard.vue'
+import { db } from '@/firebaseClient'
+import { collection, getDocs } from 'firebase/firestore'
 
 const props = defineProps({
-  memberMusicId: String,
+  memberUid: String,
   theme: Object,
   isOwner: Boolean
 })
@@ -21,17 +23,23 @@ const tableTextColor = computed(() => props.theme?.dark_one || '#000')
 const tableBackground = computed(() => props.theme?.light_one || '#fff')
 
 onMounted(() => {
-  if (props.memberMusicId) fetchArtists()
+  if (props.memberUid) fetchArtists()
 })
 
-watch(() => props.memberMusicId, (newId) => {
+watch(() => props.memberUid, (newId) => {
   if (newId) fetchArtists()
 })
 
 const fetchArtists = async () => {
+  if (!props.memberUid) return
   loading.value = true
-  // TODO: fetch artists from Firestore once database is connected
-  artists.value = []
+  const snap = await getDocs(collection(db, 'members', props.memberUid, 'artists'))
+  artists.value = await Promise.all(snap.docs.map(async d => {
+    const albumsSnap = await getDocs(collection(db, 'members', props.memberUid, 'artists', d.id, 'albums'))
+    const albumCount = albumsSnap.size
+    const songCount = albumsSnap.docs.reduce((sum, a) => sum + (a.data().songs?.length || 0), 0)
+    return { id: d.id, albumCount, songCount, ...d.data() }
+  }))
   loading.value = false
 }
 
@@ -49,7 +57,7 @@ const handleArtistAdded = () => {
       </button>
     </div>
 
-    <ArtistAddCard v-if="showArtistModal" :memberMusicId="memberMusicId" @cancel="showArtistModal = false"
+    <ArtistAddCard v-if="showArtistModal" :memberUid="memberUid" :theme="theme" @cancel="showArtistModal = false"
       @added="handleArtistAdded" />
 
     <div class="card mt-n6" :style="{ backgroundColor: tableBackground }">
@@ -78,14 +86,14 @@ const handleArtistAdded = () => {
                 <td>{{ artist.albumCount }} Album{{ artist.albumCount !== 1 ? 's' : '' }}</td>
                 <td>{{ artist.songCount }} Song{{ artist.songCount !== 1 ? 's' : '' }}</td>
                 <td>
-                  <button class="btn btn-outline" @click="$router.push(`/artists/${memberMusicId}/${artist.id}`)"
+                  <button class="btn btn-outline" @click="$router.push(`/artists/${memberUid}/${artist.id}`)"
                     :style="{ color: props.theme?.dark_one, border: 'solid 1px ' + props.theme?.dark_one }">
                     {{ isOwner ? 'Rank' : 'View Rankings' }}
                   </button>
                 </td>
               </tr>
               <tr v-if="!loading && artists.length === 0">
-                <td colspan="4" class="text-center py-3 text-muted">No artists found.</td>
+                <td colspan="4" class="text-center py-3 text-muted">No artists have been ranked yet.</td>
               </tr>
             </tbody>
           </table>
@@ -97,7 +105,7 @@ const handleArtistAdded = () => {
             <em>Loading artists...</em>
           </div>
           <div v-else-if="artists.length === 0" class="text-center text-muted py-3">
-            No artists found.
+            No artists have been ranked yet.
           </div>
           <div v-else>
             <div v-for="artist in artists" :key="artist.id"
@@ -110,7 +118,7 @@ const handleArtistAdded = () => {
                   {{ artist.songCount }} song{{ artist.songCount !== 1 ? 's' : '' }}
                 </div>
               </div>
-              <button class="btn btn-outline btn-sm" @click="$router.push(`/artists/${memberMusicId}/${artist.id}`)"
+              <button class="btn btn-outline btn-sm" @click="$router.push(`/artists/${memberUid}/${artist.id}`)"
                 :style="{ color: props.theme?.dark_one, border: '1px solid ' + props.theme?.dark_one }">
                 {{ isOwner ? 'Rank' : 'View' }}
               </button>
