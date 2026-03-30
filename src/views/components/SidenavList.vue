@@ -19,6 +19,8 @@ const getRoute = () => {
 }
 
 onMounted(async () => {
+  await auth.authStateReady()
+  if (!auth.currentUser) return
   const snap = await getDocs(collection(db, 'members'));
   const list = snap.docs.map(d => ({
     uid: d.id,

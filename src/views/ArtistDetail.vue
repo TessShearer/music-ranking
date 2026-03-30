@@ -26,6 +26,15 @@ const theme = computed(() => store.state.theme)
 const isLoggedIn = computed(() => !!user.value)
 const isOwner = computed(() => isLoggedIn.value && user.value?.uid === memberId)
 
+const noteImgStyle = computed(() => {
+  const hex = (theme.value?.light_one || '#ffffff').replace('#', '')
+  const r = parseInt(hex.substring(0, 2), 16)
+  const g = parseInt(hex.substring(2, 4), 16)
+  const b = parseInt(hex.substring(4, 6), 16)
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255
+  return luminance < 0.5 ? { filter: 'invert(1)' } : {}
+})
+
 const artist = ref(null)
 const member = ref(null)
 const albums = ref([])
@@ -42,6 +51,10 @@ const editingAlbumNameId = ref(null)
 const editedAlbumTitle = ref('')
 const editingRanking = ref(false)
 const albumRankingExpanded = ref(false)
+const itunesResults = ref([])
+const showItunesDropdown = ref(false)
+const itunesSearchTimeout = ref(null)
+const importedSongs = ref([])
 
 function showToastMessage(message, timeout = 3000) {
   toastMessage.value = message
@@ -76,11 +89,59 @@ const loadAlbums = async () => {
   }))
 }
 
+const searchItunes = (query) => {
+  clearTimeout(itunesSearchTimeout.value)
+  importedSongs.value = []
+  if (!query.trim() || query.length < 2) {
+    itunesResults.value = []
+    showItunesDropdown.value = false
+    return
+  }
+  itunesSearchTimeout.value = setTimeout(async () => {
+    try {
+      const res = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(query)}&entity=album&limit=6`)
+      const data = await res.json()
+      itunesResults.value = data.results || []
+      showItunesDropdown.value = itunesResults.value.length > 0
+    } catch {
+      itunesResults.value = []
+      showItunesDropdown.value = false
+    }
+  }, 400)
+}
+
+const selectItunesAlbum = async (album) => {
+  newAlbumName.value = album.collectionName
+  showItunesDropdown.value = false
+  itunesResults.value = []
+  try {
+    const res = await fetch(`https://itunes.apple.com/lookup?id=${album.collectionId}&entity=song`)
+    const data = await res.json()
+    importedSongs.value = data.results
+      .filter(r => r.wrapperType === 'track')
+      .sort((a, b) => (a.discNumber - b.discNumber) || (a.trackNumber - b.trackNumber))
+      .map(t => ({ id: crypto.randomUUID(), title: t.trackName, note: '' }))
+  } catch {
+    importedSongs.value = []
+  }
+}
+
+const closeDropdown = () => {
+  setTimeout(() => { showItunesDropdown.value = false }, 150)
+}
+
+const resetAlbumInput = () => {
+  showAlbumInput.value = false
+  newAlbumName.value = ''
+  importedSongs.value = []
+  itunesResults.value = []
+  showItunesDropdown.value = false
+}
+
 const addAlbum = async () => {
   if (!newAlbumName.value.trim()) return
-  await addDoc(albumsRef(), { title: newAlbumName.value.trim(), rank: albums.value.length, songs: [] })
-  newAlbumName.value = ''
-  showAlbumInput.value = false
+  await addDoc(albumsRef(), { title: newAlbumName.value.trim(), rank: albums.value.length, songs: importedSongs.value })
+  resetAlbumInput()
   await loadAlbums()
 }
 
@@ -253,19 +314,50 @@ onUnmounted(() => {
           <div class="card-body py-2 px-3" :class="{ 'd-none d-md-block': !albumRankingExpanded }">
 
             <!-- Add album inline form -->
-            <div v-if="isOwner && showAlbumInput" class="d-flex align-items-stretch gap-2 mb-3">
-              <input v-model="newAlbumName" type="text" class="form-control form-control-sm" placeholder="New album name"
-                :style="{ backgroundColor: theme?.light_two, color: theme?.dark_one, borderColor: theme?.dark_one }" />
-              <button class="btn btn-sm px-2"
-                :style="{ backgroundColor: theme?.dark_two, color: theme?.light_one }"
-                @click="addAlbum">
-                Add
-              </button>
-              <button class="btn btn-sm px-2"
-                :style="{ color: theme?.dark_one, border: '1px solid ' + theme?.dark_one }"
-                @click="showAlbumInput = false">
-                ✗
-              </button>
+            <div v-if="isOwner && showAlbumInput" class="mb-3">
+              <div class="d-flex align-items-stretch gap-2">
+                <div class="position-relative flex-grow-1">
+                  <input
+                    v-model="newAlbumName"
+                    type="text"
+                    class="form-control form-control-sm w-100"
+                    placeholder="Search iTunes or type an album name"
+                    @input="searchItunes(newAlbumName)"
+                    @blur="closeDropdown"
+                    :style="{ backgroundColor: theme?.light_two, color: theme?.dark_one, borderColor: theme?.dark_one }"
+                  />
+                  <div v-if="showItunesDropdown" class="itunes-dropdown" :style="{ backgroundColor: theme?.light_one, borderColor: (theme?.dark_one || '#000') + '44' }">
+                    <div
+                      v-for="result in itunesResults"
+                      :key="result.collectionId"
+                      class="itunes-result d-flex align-items-center gap-2 px-2 py-2"
+                      :style="{ color: theme?.dark_one }"
+                      @mousedown.prevent="selectItunesAlbum(result)"
+                    >
+                      <img :src="result.artworkUrl60" style="width: 36px; height: 36px; border-radius: 4px; flex-shrink: 0;" />
+                      <div>
+                        <div style="font-size: 0.85rem; font-weight: 600; line-height: 1.2;">{{ result.collectionName }}</div>
+                        <div style="font-size: 0.75rem; opacity: 0.65;">{{ result.artistName }}</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <button class="btn btn-sm px-2"
+                  :style="{ backgroundColor: theme?.dark_two, color: theme?.light_one }"
+                  @click="addAlbum">
+                  Add
+                </button>
+                <button class="btn btn-sm px-2"
+                  :style="{ color: theme?.dark_one, border: '1px solid ' + theme?.dark_one }"
+                  @click="resetAlbumInput">
+                  ✗
+                </button>
+              </div>
+              <div v-if="importedSongs.length > 0" class="mt-1">
+                <small :style="{ color: theme?.dark_one, opacity: 0.65 }">
+                  {{ importedSongs.length }} songs will be added
+                </small>
+              </div>
             </div>
 
             <!-- Draggable list -->
@@ -382,7 +474,7 @@ onUnmounted(() => {
                         :style="{ color: element.note ? theme?.dark_two : theme?.dark_one + '66' }"
                         @click="openNoteModal(element)" title="Note">
                         <span v-if="!element.note" style="font-size: 0.75rem; line-height: 1;">+</span>
-                        <img :src="note" alt="note" style="max-height: 14px; min-width: 14px;" />
+                        <img :src="note" alt="note" :style="[{ maxHeight: '14px', minWidth: '14px' }, noteImgStyle]" />
                       </button>
                     </li>
                   </template>
@@ -396,7 +488,7 @@ onUnmounted(() => {
                     <span style="font-size: 0.9rem;">#{{ index + 1 }} — {{ song.title }}</span>
                     <button v-if="song.note" class="btn btn-sm btn-link p-0"
                       :style="{ color: theme?.dark_two }" @click="openNoteModal(song)" title="Note">
-                      <img :src="note" alt="note" style="max-height: 14px; min-width: 14px;" />
+                      <img :src="note" alt="note" :style="[{ maxHeight: '14px', minWidth: '14px' }, noteImgStyle]" />
                     </button>
                   </li>
                 </ul>
@@ -530,5 +622,25 @@ onUnmounted(() => {
 
 .chevron-up {
   transform: rotate(-135deg) translate(-1px, -1px);
+}
+
+.itunes-dropdown {
+  position: absolute;
+  top: calc(100% + 2px);
+  left: 0;
+  right: 0;
+  z-index: 200;
+  border: 1px solid;
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.itunes-result {
+  cursor: pointer;
+}
+
+.itunes-result:hover {
+  filter: brightness(0.93);
 }
 </style>

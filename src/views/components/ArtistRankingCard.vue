@@ -163,7 +163,7 @@ const cancelReset = () => { showConfirmReset.value = false }
                 <li v-for="(song, index) in rankedList" :key="song.id"
                     class="ranked-row d-flex align-items-center px-1 py-1 view-only"
                     :style="{ color: theme.dark_one }">
-                    <button v-if="props.isOwner" class="btn btn-sm btn-link text-danger p-0 lh-1 me-2"
+                    <button v-if="editing && props.isOwner" class="btn btn-sm btn-link text-danger p-0 lh-1 me-2"
                         style="font-size: 0.8rem;" @click="removeSongFromRanking(song)" title="Remove">×</button>
                     <span class="text-muted me-2" style="font-size: 0.8rem; min-width: 1.5rem;">#{{ index + 1 }}</span>
                     <span class="flex-grow-1" style="font-size: 0.9rem;">{{ song.title }}</span>
