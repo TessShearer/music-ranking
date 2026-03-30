@@ -15,8 +15,6 @@ const theme = computed(() => store.state.theme)
 const showDropdown = ref(false)
 const members = ref([])
 
-const userName = computed(() => user.value?.displayName || user.value?.email || 'Guest')
-
 const menuIconFilter = computed(() => {
   const hex = theme.value?.light_one?.replace('#', '')
   if (!hex || hex.length < 6) return 'none'
@@ -68,7 +66,7 @@ const handleLogout = async () => {
 
 
 <template>
-  <nav class="navbar navbar-main navbar-expand-lg px-0 m-4 shadow border-radius-xl d-lg-none"
+  <nav class="navbar navbar-main navbar-expand-lg px-0 shadow sticky-top d-lg-none"
     :style="{ backgroundColor: theme?.light_two || '#f5f5f5', zIndex: 1050 }" id="navbarBlur" data-scroll="true">
     <div class="px-3 py-1 container-fluid d-flex justify-content-between align-items-center">
 
@@ -112,7 +110,6 @@ const handleLogout = async () => {
         </ul>
       </div>
 
-      <h6 class="mb-0" :style="{ color: theme?.dark_one || '#344767' }">Welcome, {{ userName }}</h6>
 
     </div>
   </nav>

@@ -26,14 +26,16 @@ const theme = computed(() => store.state.theme)
 const isLoggedIn = computed(() => !!user.value)
 const isOwner = computed(() => isLoggedIn.value && user.value?.uid === memberId)
 
-const noteImgStyle = computed(() => {
+const isDarkTheme = computed(() => {
   const hex = (theme.value?.light_one || '#ffffff').replace('#', '')
   const r = parseInt(hex.substring(0, 2), 16)
   const g = parseInt(hex.substring(2, 4), 16)
   const b = parseInt(hex.substring(4, 6), 16)
-  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255
-  return luminance < 0.5 ? { filter: 'invert(1)' } : {}
+  return (0.299 * r + 0.587 * g + 0.114 * b) / 255 < 0.5
 })
+
+const noteImgStyle = computed(() => isDarkTheme.value ? { filter: 'invert(1)' } : {})
+const pencilImgStyle = computed(() => isDarkTheme.value ? { filter: 'invert(1) opacity(0.85)' } : { filter: 'opacity(0.7)' })
 
 const artist = ref(null)
 const member = ref(null)
@@ -247,7 +249,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div v-if="member" class="container-fluid py-4">
+  <div v-if="member" class="container-fluid py-0 py-md-4 px-0 px-md-3 d-flex flex-column" style="min-height: 100vh;">
 
 
 
@@ -261,14 +263,14 @@ onUnmounted(() => {
     border: 'solid 1px' + theme?.dark_one,
     color: theme?.dark_one
   }">
-          &lt; <span class="d-none d-md-inline">Back to Artists</span>
+          <span class="d-md-none">Back</span><span class="d-none d-md-inline">Back to Artists</span>
         </button>
       </div>
     </div>
 
     <!-- Album Ranking on Top -->
-    <div class="row mb-4">
-      <div class="col-12">
+    <div class="row mx-0 mb-4">
+      <div class="col-12 px-0 px-md-3">
         <artist-ranking-card :theme="theme" :isOwner="isOwner" :memberId="memberId" :artistId="artistId" />
 
         <div class="card" :style="{ backgroundColor: theme?.light_one, color: theme?.dark_one, border: '1px solid ' + (theme?.dark_one || '#000') + '44' }">
@@ -277,12 +279,18 @@ onUnmounted(() => {
           <div class="card-header d-flex align-items-center justify-content-between py-2 px-3"
             :style="{ backgroundColor: theme?.light_two, color: theme?.dark_one, border: 'none', borderBottom: '1px solid ' + (theme?.dark_one || '#000') + '22' }">
 
-            <div class="d-flex align-items-center gap-2">
-              <h6 class="mb-0 fw-semibold" :style="{ color: theme?.dark_one }">Album Ranking</h6>
-              <button v-if="isOwner && !editingRanking" class="btn btn-sm btn-link p-0" title="Reorder albums"
-                @click="editingRanking = true">
-                <img :src="pencil" alt="Edit" style="max-height: 11px; opacity: 0.7; margin-top: 4px;" />
-              </button>
+            <div>
+              <div class="d-flex align-items-center gap-2">
+                <h6 class="mb-0 fw-semibold" :style="{ color: theme?.dark_one }">Album Ranking</h6>
+                <button v-if="isOwner && !editingRanking" class="btn btn-sm btn-link p-0" title="Reorder albums"
+                  :class="!albumRankingExpanded ? 'd-none d-md-block' : ''"
+                  @click="editingRanking = true">
+                  <img :src="pencil" alt="Edit" style="max-height: 11px; margin-top: 4px;" :style="pencilImgStyle" />
+                </button>
+              </div>
+              <small class="d-block d-md-none" :style="{ color: theme?.dark_one, opacity: 0.6, fontSize: '0.75rem' }">
+                {{ albums.length }} album{{ albums.length !== 1 ? 's' : '' }}
+              </small>
             </div>
 
             <div class="d-flex align-items-center gap-2">
@@ -335,10 +343,11 @@ onUnmounted(() => {
                       @mousedown.prevent="selectItunesAlbum(result)"
                     >
                       <img :src="result.artworkUrl60" style="width: 36px; height: 36px; border-radius: 4px; flex-shrink: 0;" />
-                      <div>
+                      <div class="flex-grow-1">
                         <div style="font-size: 0.85rem; font-weight: 600; line-height: 1.2;">{{ result.collectionName }}</div>
                         <div style="font-size: 0.75rem; opacity: 0.65;">{{ result.artistName }}</div>
                       </div>
+                      <div style="font-size: 0.75rem; opacity: 0.5; flex-shrink: 0;">{{ result.trackCount }} songs</div>
                     </div>
                   </div>
                 </div>
@@ -353,8 +362,10 @@ onUnmounted(() => {
                   ✗
                 </button>
               </div>
-              <div v-if="importedSongs.length > 0" class="mt-1">
+              <div v-if="importedSongs.length > 0" class="mt-1 pb-2"
+                :style="{ borderBottom: '1px solid ' + (theme?.dark_one || '#000') + '33' }">
                 <small :style="{ color: theme?.dark_one, opacity: 0.65 }">
+                  <span style="display: block; font-weight: 600;">{{ newAlbumName }}</span>
                   {{ importedSongs.length }} songs will be added
                 </small>
               </div>
@@ -386,10 +397,10 @@ onUnmounted(() => {
     </div>
 
     <!-- Album Cards Grid -->
-    <div class="row">
-      <div v-if="albums.length > 0" class="col-12">
-        <div class="row">
-          <div v-for="album in albums" :key="album.id" class="col-md-6 mb-4">
+    <div class="row mx-0">
+      <div v-if="albums.length > 0" class="col-12 px-0 px-md-3">
+        <div class="row mx-0 mx-md-n3">
+          <div v-for="album in albums" :key="album.id" class="col-12 col-md-6 mb-0 mb-md-4 px-0 px-md-3">
             <div class="card shadow" :style="{ backgroundColor: theme?.light_one, color: theme?.dark_one, border: '1px solid ' + (theme?.dark_one || '#000') + '44' }">
 
               <!-- Card Header: title + contextual action buttons -->
@@ -397,17 +408,22 @@ onUnmounted(() => {
                 :style="{ backgroundColor: theme?.light_two, color: theme?.dark_one, border: 'none', borderBottom: '1px solid ' + (theme?.dark_one || '#000') + '22' }">
 
                 <!-- Title or rename input -->
-                <div class="flex-grow-1 me-2 d-flex align-items-center gap-2">
-                  <input v-if="editingAlbumNameId === album.id" v-model="editedAlbumTitle" type="text"
-                    class="form-control form-control-sm"
-                    :style="{ backgroundColor: theme?.light_one, color: theme?.dark_one, borderColor: theme?.dark_one }" />
-                  <template v-else>
-                    <h6 class="mb-0 fw-semibold" :style="{ color: theme?.dark_one }">{{ album.title }}</h6>
-                    <button v-if="editingAlbumId === album.id" class="btn btn-sm btn-link p-0" title="Rename album"
-                      @click="() => { editingAlbumNameId = album.id; editedAlbumTitle = album.title }">
-                      <img :src="pencil" alt="Rename" style="max-height: 11px; opacity: 0.7; margin-top: 4px;" />
-                    </button>
-                  </template>
+                <div class="flex-grow-1 me-2">
+                  <div class="d-flex align-items-center gap-2">
+                    <input v-if="editingAlbumNameId === album.id" v-model="editedAlbumTitle" type="text"
+                      class="form-control form-control-sm"
+                      :style="{ backgroundColor: theme?.light_one, color: theme?.dark_one, borderColor: theme?.dark_one }" />
+                    <template v-else>
+                      <h6 class="mb-0 fw-semibold" :style="{ color: theme?.dark_one }">{{ album.title }}</h6>
+                      <button v-if="editingAlbumId === album.id" class="btn btn-sm btn-link p-0" title="Rename album"
+                        @click="() => { editingAlbumNameId = album.id; editedAlbumTitle = album.title }">
+                        <img :src="pencil" alt="Rename" style="max-height: 11px; margin-top: 4px;" :style="pencilImgStyle" />
+                      </button>
+                    </template>
+                  </div>
+                  <small class="d-block d-md-none" :style="{ color: theme?.dark_one, opacity: 0.6, fontSize: '0.75rem' }">
+                    {{ album.songs.length }} song{{ album.songs.length !== 1 ? 's' : '' }}
+                  </small>
                 </div>
 
                 <!-- Right-side buttons — one of three states -->
@@ -443,7 +459,7 @@ onUnmounted(() => {
                   <template v-else-if="isOwner">
                     <button class="btn btn-sm btn-link p-1" title="Edit album"
                       @click="() => { editingAlbumId = album.id; editedAlbumTitle = album.title; album.expanded = true }">
-                      <img :src="pencil" alt="Edit" style="max-height: 13px; opacity: 0.6;" />
+                      <img :src="pencil" alt="Edit" style="max-height: 13px;" :style="pencilImgStyle" />
                     </button>
                   </template>
                   <!-- Mobile collapse toggle (always visible on mobile) -->
@@ -464,7 +480,7 @@ onUnmounted(() => {
                   class="song-list mb-2" :class="{ 'two-columns': album.songs.length >= 10 }">
                   <template #item="{ element, index }">
                     <li class="song-row d-flex justify-content-between align-items-center px-1 py-1"
-                      :style="{ color: theme?.dark_one }">
+                      :style="{ color: theme?.dark_one, borderBottom: '1px solid ' + (theme?.dark_one || '#000') + '22' }">
                       <div class="d-flex align-items-center gap-2">
                         <button class="btn btn-sm btn-link text-danger p-0 lh-1" style="font-size: 0.8rem;"
                           @click="deleteSong(element.id)" title="Remove">×</button>
@@ -484,7 +500,7 @@ onUnmounted(() => {
                 <ul v-else class="song-list mb-2 view-only" :class="{ 'two-columns': album.songs.length >= 10 }">
                   <li v-for="(song, index) in album.songs" :key="song.id"
                     class="song-row d-flex justify-content-between align-items-center px-1 py-1 view-only"
-                    :style="{ color: theme?.dark_one }">
+                    :style="{ color: theme?.dark_one, borderBottom: '1px solid ' + (theme?.dark_one || '#000') + '22' }">
                     <span style="font-size: 0.9rem;">#{{ index + 1 }} — {{ song.title }}</span>
                     <button v-if="song.note" class="btn btn-sm btn-link p-0"
                       :style="{ color: theme?.dark_two }" @click="openNoteModal(song)" title="Note">
@@ -534,14 +550,14 @@ onUnmounted(() => {
     <div v-if="showNoteModal" class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5);">
       <div class="modal-dialog">
         <div class="modal-content" :style="{ backgroundColor: theme?.light_one, color: theme?.dark_one }">
-          <div class="modal-header">
-            <h5 class="modal-title">Song Note</h5>
+          <div class="modal-header" :style="{ backgroundColor: theme?.light_two, borderColor: (theme?.dark_one || '#000') + '22' }">
+            <h5 class="modal-title" :style="{ color: theme?.dark_one }">Song Note</h5>
             <button type="button" class="btn-close" @click="showNoteModal = false"></button>
           </div>
           <div class="modal-body">
             <p><strong>{{ currentNoteSong?.title }}</strong></p>
             <textarea v-model="noteText" class="form-control" rows="4" :readonly="!isOwner"
-              :style="{ color: theme?.dark_one }" />
+              :style="{ color: theme?.dark_one, backgroundColor: theme?.light_two, borderColor: (theme?.dark_one || '#000') + '44' }" />
           </div>
           <div class="modal-footer">
             <button class="btn btn-secondary" @click="showNoteModal = false">
@@ -553,8 +569,8 @@ onUnmounted(() => {
       </div>
     </div>
 
-    <div v-if="isOwner" class="mt-4 text-end">
-      <button class="btn btn-danger" @click="deleteArtist">
+    <div v-if="isOwner" class="mt-auto mb-2 pt-4 text-end">
+      <button class="m-4 btn btn-danger" @click="deleteArtist">
         Delete Artist & All Data
       </button>
     </div>
@@ -595,12 +611,7 @@ onUnmounted(() => {
 
 .song-row {
   break-inside: avoid;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
   cursor: grab;
-}
-
-.song-row:last-child {
-  border-bottom: none;
 }
 
 .view-only,
@@ -624,6 +635,21 @@ onUnmounted(() => {
   transform: rotate(-135deg) translate(-1px, -1px);
 }
 
+@media (max-width: 767px) {
+  :deep(.card) {
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+  :deep(.card-header) {
+    border-radius: 0 !important;
+  }
+  :deep(.card-body) {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+}
+
 .itunes-dropdown {
   position: absolute;
   top: calc(100% + 2px);
@@ -643,4 +669,5 @@ onUnmounted(() => {
 .itunes-result:hover {
   filter: brightness(0.93);
 }
+
 </style>

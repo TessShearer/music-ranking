@@ -42,7 +42,7 @@ const navClasses = computed(() => {
     "position-sticky bg-default left-auto top-2 z-index-sticky":
       isNavFixed.value && darkMode.value,
     "position-absolute px-4 mx-0 w-100 z-index-2": isAbsolute.value,
-    "px-0 mx-4": !isAbsolute.value,
+    "px-0 mx-0": !isAbsolute.value,
   };
 });
 

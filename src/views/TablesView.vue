@@ -60,7 +60,7 @@ onMounted(async () => {
 
 
 <template>
-  <div v-if="member" class="container-fluid">
+  <div v-if="member" class="container-fluid px-0 px-md-3">
     <div class="page-header min-height-200" :style="{
     backgroundImage: theme?.header ? `url(${theme.header})` : '',
     backgroundSize: 'cover',
@@ -80,8 +80,8 @@ onMounted(async () => {
     left: 0,
   }"></span>
     </div>
-    <div class="row">
-      <div class="col-12">
+    <div class="row mx-0">
+      <div class="col-12 px-0 px-md-3">
         <artists-table :memberUid="member?.uid" :theme="theme" :isOwner="isOwner" />
       </div>
     </div>

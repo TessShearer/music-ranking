@@ -102,7 +102,12 @@ const cancelReset = () => { showConfirmReset.value = false }
         <div class="card-header d-flex align-items-center justify-content-between py-2 px-3"
             :style="{ backgroundColor: theme.light_two, color: theme.dark_one, border: 'none', borderBottom: '1px solid ' + (theme.dark_one || '#000') + '22' }">
 
-            <h6 class="mb-0 fw-semibold" :style="{ color: theme.dark_one }">Entire Ranked Discography</h6>
+            <div>
+              <h6 class="mb-0 fw-semibold" :style="{ color: theme.dark_one }">Entire Ranked Discography</h6>
+              <small v-if="expanded" class="d-block d-md-none" :style="{ color: theme.dark_one, opacity: 0.6, fontSize: '0.75rem' }">
+                {{ rankedList.length }} song{{ rankedList.length !== 1 ? 's' : '' }} ranked
+              </small>
+            </div>
 
             <div class="d-flex align-items-center gap-2">
                 <!-- Edit mode: reset + done -->
