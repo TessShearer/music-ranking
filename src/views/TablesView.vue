@@ -24,11 +24,13 @@ const loadMember = async () => {
     member.value = { uid: snap.id, ...snap.data() }
     isOwner.value = loggedInUser.value?.uid === snap.id
     store.commit('setTheme', getTheme(snap.data().theme_id ?? 0))
+    store.commit('setViewingMemberName', snap.data().member_name)
   }
 }
 
 onUnmounted(() => {
   store.commit('setTheme', getTheme(store.state.member?.theme_id ?? 0))
+  store.commit('setViewingMemberName', null)
 })
 
 // Watch for user becoming available after a refresh
@@ -79,7 +81,9 @@ onMounted(async () => {
     bottom: 0,
     left: 0,
   }"></span>
+
     </div>
+
     <div class="row mx-0">
       <div class="col-12 px-0 px-md-3">
         <artists-table :memberUid="member?.uid" :theme="theme" :isOwner="isOwner" />

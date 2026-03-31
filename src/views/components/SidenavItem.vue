@@ -32,18 +32,57 @@ defineProps({
   text: {
     type: String,
     default: null,
-  }
+  },
+  isSelected: {
+    type: Boolean,
+    default: false,
+  },
 });
 </script>
-<template>
-  <router-link :to="to" class="nav-link my-2 px-3" :style="{ backgroundColor: background, color: text }" @click="minimizeSidebar">
 
-    <div class="icon icon-shape icon-sm text-center d-flex align-items-center justify-content-center">
-      <img :src="path ? path : '/themes/settings.jpg'" alt="Theme Image" class="rounded-circle"
-        style="min-width: 4vh; min-height: 4vh; object-fit: cover;" />
+<template>
+  <router-link
+    :to="to"
+    class="nav-link my-2 px-3 sidenav-item"
+    :class="{ 'sidenav-item-selected': isSelected }"
+    :style="{ backgroundColor: background, color: text }"
+    @click="minimizeSidebar"
+  >
+    <!-- Icon/avatar -->
+    <div
+      class="icon text-center d-flex align-items-center justify-content-center flex-shrink-0"
+      :style="isSelected
+        ? { width: '7vh', height: '7vh', minWidth: '7vh', padding: '0', transition: 'width 0.4s ease, height 0.4s ease' }
+        : { width: '28px', height: '28px', minWidth: '28px', padding: '0', transition: 'width 0.4s ease, height 0.4s ease' }"
+    >
+      <img
+        :src="path ? path : '/themes/settings.jpg'"
+        alt="Theme Image"
+        class="rounded-circle"
+        style="width: 100%; height: 100%; object-fit: cover;"
+      />
     </div>
-    <span class="nav-link-text" :class="isRTL ? ' me-1' : 'ms-1'">{{
-    navText
-      }}</span>
+
+    <!-- Name -->
+    <span
+      class="nav-link-text"
+      :class="isRTL ? 'me-1' : 'ms-2'"
+      :style="isSelected
+        ? { fontSize: '1.1rem', fontWeight: '700', whiteSpace: 'normal', lineHeight: '1.2' }
+        : {}"
+    >
+      {{ navText }}
+    </span>
   </router-link>
 </template>
+
+<style scoped>
+.sidenav-item {
+  transition: padding 0.4s ease;
+}
+
+.sidenav-item-selected {
+  padding-top: 0.65rem !important;
+  padding-bottom: 0.65rem !important;
+}
+</style>

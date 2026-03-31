@@ -51,6 +51,7 @@ const handleArtistAdded = () => {
 
 <template>
   <div>
+
     <ArtistAddCard v-if="showArtistModal" :memberUid="memberUid" :theme="theme" @cancel="showArtistModal = false"
       @added="handleArtistAdded" />
 

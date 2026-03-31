@@ -12,6 +12,7 @@ const router = useRouter()
 
 const user = computed(() => store.state.user)
 const theme = computed(() => store.state.theme)
+const viewingMemberName = computed(() => store.state.viewingMemberName)
 const showDropdown = ref(false)
 const members = ref([])
 
@@ -110,6 +111,11 @@ const handleLogout = async () => {
         </ul>
       </div>
 
+      <!-- Page title -->
+      <span v-if="viewingMemberName" class="fw-semibold" style="font-size: 0.9rem;"
+        :style="{ color: theme?.dark_one }">
+        {{ viewingMemberName }}'s rankings
+      </span>
 
     </div>
   </nav>

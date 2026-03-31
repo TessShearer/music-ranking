@@ -30,6 +30,7 @@ export default createStore({
     member: null,
     theme: getTheme(0),
     themeSource: 'self',
+    viewingMemberName: null,
   },
 
   mutations: {
@@ -73,11 +74,15 @@ export default createStore({
       state.member = member;
       state.theme = getTheme(member?.theme_id ?? 0);
     },
+    setViewingMemberName(state, name) {
+      state.viewingMemberName = name
+    },
     clearAuth(state) {
       state.user = null;
       state.member = null;
       state.theme = getTheme(0);
       state.themeSource = 'self'
+      state.viewingMemberName = null
     },
   },
 

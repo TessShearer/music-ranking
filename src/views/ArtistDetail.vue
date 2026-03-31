@@ -237,6 +237,7 @@ onMounted(async () => {
   if (memberSnap.exists()) {
     member.value = { uid: memberSnap.id, ...memberSnap.data() }
     store.commit('setTheme', getTheme(memberSnap.data().theme_id ?? 0))
+    store.commit('setViewingMemberName', memberSnap.data().member_name)
   }
   if (artistSnap.exists()) artist.value = { id: artistSnap.id, ...artistSnap.data() }
   await loadAlbums()
@@ -244,6 +245,7 @@ onMounted(async () => {
 
 onUnmounted(() => {
   store.commit('setTheme', getTheme(store.state.member?.theme_id ?? 0))
+  store.commit('setViewingMemberName', null)
 })
 
 </script>
@@ -258,7 +260,10 @@ onUnmounted(() => {
     <div class="card mb-1"
       :style="{ backgroundColor: theme?.light_one || '#f5f5f5', color: theme?.dark_one || '#333', border: '1px solid ' + (theme?.dark_one || '#000') + '44' }">
       <div class="card-body d-flex flex-wrap align-items-center justify-content-between">
-        <h3 class="mb-0" :style="{ color: theme?.dark_one }">{{ artist?.name }}</h3>
+        <div>
+          <span class="d-none d-md-block" style="font-size: 0.8rem; opacity: 0.6;" :style="{ color: theme?.dark_one }">{{ member?.member_name }}'s rankings</span>
+          <h3 class="mb-0" :style="{ color: theme?.dark_one }">{{ artist?.name }}</h3>
+        </div>
         <button class="btn btn-outline my-auto" @click="router.push(`/members/${memberId}/tables`)" :style="{
     border: 'solid 1px' + theme?.dark_one,
     color: theme?.dark_one
