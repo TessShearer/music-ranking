@@ -18,6 +18,7 @@ const themes = ref([]);
 const showDeleteConfirm = ref(false)
 const selectedThemeId = ref(0);
 const updatedName = ref('');
+const updatedEmail = ref('');
 const success = ref('');
 const error = ref('');
 const isPrivate = ref(false);
@@ -44,6 +45,7 @@ onMounted(async () => {
     }
   }
 
+  updatedEmail.value = auth.currentUser?.email || ''
   themes.value = Object.values(themeConfig)
 });
 
@@ -61,6 +63,7 @@ const submitChanges = async () => {
       theme_id: selectedThemeId.value,
       is_private: isPrivate.value,
     }
+
     await updateDoc(doc(db, 'members', auth.currentUser.uid), memberData)
     store.commit('setMember', memberData)
     success.value = 'Profile updated!'
@@ -138,6 +141,10 @@ const deleteConfirmed = async () => {
             <div class="col-md-6">
               <label class="form-control-label" :style="{ color: theme?.dark_one }">Username</label>
               <argon-input v-model="updatedName" type="text" />
+            </div>
+            <div class="col-md-6">
+              <label class="form-control-label" :style="{ color: theme?.dark_one }">Email</label>
+              <p class="form-control-static mt-1" :style="{ color: theme?.dark_one, opacity: 0.75 }">{{ updatedEmail }}</p>
             </div>
           </div>
 

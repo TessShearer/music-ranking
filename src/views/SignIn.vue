@@ -1,7 +1,8 @@
 <script setup>
 import { ref, onMounted, onBeforeMount, onBeforeUnmount } from 'vue'
-import { auth } from '@/firebaseClient'
+import { auth, db } from '@/firebaseClient'
 import { signInWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth'
+import { collection, doc, getDocs, query, updateDoc, where } from 'firebase/firestore'
 import { useRouter } from 'vue-router'
 import { useStore } from "vuex"
 
@@ -12,7 +13,7 @@ import ArgonButton from "@/components/ArgonButton.vue"
 const store = useStore()
 const router = useRouter()
 
-const email = ref('')
+const identifier = ref('')
 const premail = ref('')
 const password = ref('')
 const errorMessage = ref('')
@@ -38,11 +39,37 @@ onMounted(() => {
 const signIn = async () => {
   errorMessage.value = ''
   try {
-    const userCredential = await signInWithEmailAndPassword(auth, email.value, password.value)
-    const user = userCredential.user
+    let emailToUse = identifier.value.trim()
 
+    if (!emailToUse.includes('@')) {
+      try {
+        const snap = await getDocs(query(collection(db, 'members'), where('member_name', '==', emailToUse)))
+        if (snap.empty) {
+          errorMessage.value = 'No account found with that username.'
+          return
+        }
+        const memberData = snap.docs[0].data()
+        if (!memberData.email) {
+          errorMessage.value = 'This account was set up before username login was added — please sign in with your email address instead.'
+          return
+        }
+        emailToUse = memberData.email
+      } catch {
+        errorMessage.value = 'Username lookup failed — please sign in with your email address instead.'
+        return
+      }
+    }
+
+    const userCredential = await signInWithEmailAndPassword(auth, emailToUse, password.value)
+    const user = userCredential.user
     store.commit('setUser', user)
     const hasMember = await store.dispatch('fetchMember', user.uid)
+
+    // Backfill email into member doc for existing users who don't have it yet
+    if (hasMember && !store.state.member?.email) {
+      updateDoc(doc(db, 'members', user.uid), { email: user.email }).catch(() => {})
+    }
+
     await router.push(hasMember ? `/members/${user.uid}/tables` : '/create-member')
   } catch (err) {
     errorMessage.value = err.message
@@ -72,12 +99,12 @@ const resetPassword = async () => {
               <div class="card card-plain">
                 <div class="pb-0 card-header text-start">
                   <h4 class="font-weight-bolder">Sign In</h4>
-                  <p class="mb-0">Enter your email and password to sign in</p>
+                  <p class="mb-0">Enter your username or email and password to sign in</p>
                 </div>
                 <div class="card-body">
                   <form role="form" @submit.prevent="signIn">
                     <div class="mb-3">
-                      <argon-input v-model="email" id="email" type="email" placeholder="email" name="email" size="lg" />
+                      <argon-input v-model="identifier" id="identifier" type="text" placeholder="username or email" name="identifier" size="lg" />
                     </div>
                     <div class="mb-3">
                       <argon-input v-model="password" id="password" type="password" placeholder="Password"

@@ -97,7 +97,7 @@ const handleLogout = async () => {
               @click="showDropdown = false">
               <img src="/themes/settings.jpg" alt="Settings" class="rounded-circle"
                 style="width: 32px; height: 32px; object-fit: cover;" />
-              <span :style="{ color: theme?.dark_one }">Edit Settings</span>
+              <span :style="{ color: theme?.dark_one }">Profile</span>
             </router-link>
           </li>
           <li><hr class="dropdown-divider" /></li>

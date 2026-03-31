@@ -69,7 +69,7 @@ const handleLogout = async () => {
     <div class="px-3 pb-2 d-flex flex-column gap-2">
       <router-link to="/profile" class="btn btn-sm w-100"
         :style="{ backgroundColor: theme?.light_two || '#e9ecef', color: theme?.dark_one || '#344767', border: 'none' }">
-        Edit Settings
+        Edit Profile
       </router-link>
       <button class="btn btn-sm w-100" @click="handleLogout"
         :style="{ backgroundColor: theme?.dark_two || '#344767', color: theme?.light_one || '#fff' }">

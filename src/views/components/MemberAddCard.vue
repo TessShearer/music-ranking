@@ -38,6 +38,7 @@ const submitMember = async () => {
       member_name: username.value.trim(),
       theme_id: selectedThemeId.value,
       is_private: isPrivate.value,
+      email: auth.currentUser.email,
     }
     await setDoc(doc(db, 'members', auth.currentUser.uid), memberData)
     store.commit('setMember', memberData)
