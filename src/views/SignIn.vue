@@ -81,7 +81,7 @@ const resetPassword = async () => {
   try {
     await sendPasswordResetEmail(auth, premail.value)
     passwordResetRequest.value = false
-    alert("Check your email for a reset link.")
+    alert("Check your email for a reset link. It may have gone to spam. It probably did go to spam.")
   } catch (err) {
     errorMessage.value = err.message
   }
