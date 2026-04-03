@@ -101,7 +101,7 @@ const searchItunes = (query) => {
   }
   itunesSearchTimeout.value = setTimeout(async () => {
     try {
-      const res = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(query)}&entity=album&limit=6`)
+      const res = await fetch(`/api/itunes/search?term=${encodeURIComponent(query)}&entity=album&limit=6`)
       const data = await res.json()
       itunesResults.value = data.results || []
       showItunesDropdown.value = itunesResults.value.length > 0
@@ -117,7 +117,7 @@ const selectItunesAlbum = async (album) => {
   showItunesDropdown.value = false
   itunesResults.value = []
   try {
-    const res = await fetch(`https://itunes.apple.com/lookup?id=${album.collectionId}&entity=song`)
+    const res = await fetch(`/api/itunes/lookup?id=${album.collectionId}&entity=song`)
     const data = await res.json()
     importedSongs.value = data.results
       .filter(r => r.wrapperType === 'track')
@@ -367,12 +367,17 @@ onUnmounted(() => {
                   ✗
                 </button>
               </div>
-              <div v-if="importedSongs.length > 0" class="mt-1 pb-2"
+              <div v-if="importedSongs.length > 0" class="mt-1 pb-2 d-flex align-items-center justify-content-between"
                 :style="{ borderBottom: '1px solid ' + (theme?.dark_one || '#000') + '33' }">
                 <small :style="{ color: theme?.dark_one, opacity: 0.65 }">
                   <span style="display: block; font-weight: 600;">{{ newAlbumName }}</span>
                   {{ importedSongs.length }} songs will be added
                 </small>
+                <button class="btn btn-sm px-2 ms-2 flex-shrink-0"
+                  :style="{ backgroundColor: theme?.dark_two, color: theme?.light_one }"
+                  @click="addAlbum">
+                  Add
+                </button>
               </div>
             </div>
 
