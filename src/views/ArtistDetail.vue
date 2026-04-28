@@ -11,6 +11,8 @@ import pencil from '@/assets/img/icons/pencil.png'
 import { auth, db } from '@/firebaseClient'
 import { getTheme } from '@/themes'
 import { doc, getDoc, collection, getDocs, addDoc, updateDoc, deleteDoc, query, orderBy, writeBatch } from 'firebase/firestore'
+import { getSpotifyToken, startSpotifyAuth, clearSpotifyToken, spotifyTokenHasPlaylistScope } from '@/spotify'
+import SpotifyExportModal from './components/SpotifyExportModal.vue'
 
 const store = useStore()
 const route = useRoute()
@@ -57,6 +59,19 @@ const itunesResults = ref([])
 const showItunesDropdown = ref(false)
 const itunesSearchTimeout = ref(null)
 const importedSongs = ref([])
+
+const spotifyExportAlbum = ref(null)
+const spotifyToken = ref(getSpotifyToken())
+
+const handleAlbumSpotifyExport = async (album) => {
+  spotifyToken.value = getSpotifyToken()
+  if (!spotifyToken.value || !spotifyTokenHasPlaylistScope()) {
+    clearSpotifyToken()
+    await startSpotifyAuth(route.fullPath)
+    return
+  }
+  spotifyExportAlbum.value = album
+}
 
 function showToastMessage(message, timeout = 3000) {
   toastMessage.value = message
@@ -276,7 +291,7 @@ onUnmounted(() => {
     <!-- Album Ranking on Top -->
     <div class="row mx-0 mb-4">
       <div class="col-12 px-0 px-md-3">
-        <artist-ranking-card :theme="theme" :isOwner="isOwner" :memberId="memberId" :artistId="artistId" />
+        <artist-ranking-card :theme="theme" :isOwner="isOwner" :memberId="memberId" :artistId="artistId" :artistName="artist?.name" />
 
         <div class="card" :style="{ backgroundColor: theme?.light_one, color: theme?.dark_one, border: '1px solid ' + (theme?.dark_one || '#000') + '44' }">
 
@@ -465,8 +480,15 @@ onUnmounted(() => {
                     </button>
                   </template>
 
-                  <!-- View mode: pencil to enter edit -->
+                  <!-- View mode: spotify export + pencil to enter edit -->
                   <template v-else-if="isOwner">
+                    <button v-if="album.songs.length > 0"
+                      class="btn btn-sm px-2 py-1"
+                      style="background-color: #1DB954; color: #fff; border: none; font-size: 0.75rem;"
+                      @click="handleAlbumSpotifyExport(album)"
+                      title="Export album to Spotify playlist">
+                      Spotify
+                    </button>
                     <button class="btn btn-sm btn-link p-1" title="Edit album"
                       @click="() => { editingAlbumId = album.id; editedAlbumTitle = album.title; album.expanded = true }">
                       <img :src="pencil" alt="Edit" style="max-height: 13px;" :style="pencilImgStyle" />
@@ -555,6 +577,17 @@ onUnmounted(() => {
         </div>
       </div>
     </div>
+
+    <!-- Spotify Export Modal -->
+    <SpotifyExportModal
+      v-if="spotifyExportAlbum"
+      :artistName="artist?.name"
+      :songs="spotifyExportAlbum.songs"
+      :playlistName="`${spotifyExportAlbum.title} ranked`"
+      :token="spotifyToken"
+      :theme="theme"
+      @close="spotifyExportAlbum = null"
+    />
 
     <!-- Note Modal (outside album loop) -->
     <div v-if="showNoteModal" class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5);">

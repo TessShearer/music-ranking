@@ -1,15 +1,21 @@
 <script setup>
 import { ref, watchEffect, computed } from 'vue'
+import { useRoute } from 'vue-router'
 import draggable from 'vuedraggable'
 import { db } from '@/firebaseClient'
 import { doc, getDoc, getDocs, updateDoc, collection, query, orderBy } from 'firebase/firestore'
+import { getSpotifyToken, startSpotifyAuth, clearSpotifyToken, spotifyTokenHasPlaylistScope } from '@/spotify'
+import SpotifyExportModal from './SpotifyExportModal.vue'
 
 const props = defineProps({
     theme: Object,
     isOwner: Boolean,
     memberId: String,
     artistId: String,
+    artistName: String,
 })
+
+const route = useRoute()
 
 const editing = ref(false)
 const expanded = ref(false)
@@ -18,6 +24,19 @@ const rankedList = ref([])
 const albums = ref([])
 const error = ref(null)
 const showConfirmReset = ref(false)
+
+const spotifyModalOpen = ref(false)
+const spotifyToken = ref(getSpotifyToken())
+
+const handleSpotifyExport = async () => {
+    spotifyToken.value = getSpotifyToken()
+    if (!spotifyToken.value || !spotifyTokenHasPlaylistScope()) {
+        clearSpotifyToken()
+        await startSpotifyAuth(route.fullPath)
+        return
+    }
+    spotifyModalOpen.value = true
+}
 
 const artistRef = () => doc(db, 'members', props.memberId, 'artists', props.artistId)
 
@@ -124,12 +143,20 @@ const cancelReset = () => { showConfirmReset.value = false }
                     </button>
                 </template>
 
-                <!-- Expanded, view mode: edit rankings button -->
-                <button v-else-if="expanded && props.isOwner" class="btn btn-sm px-2 py-1"
-                    :style="{ backgroundColor: theme.dark_two, color: theme.light_one }"
-                    @click="editing = true">
-                    Edit Rankings
-                </button>
+                <!-- Expanded, view mode: edit rankings + export buttons -->
+                <template v-else-if="expanded && props.isOwner">
+                    <button class="btn btn-sm px-2 py-1"
+                        :style="{ backgroundColor: theme.dark_two, color: theme.light_one }"
+                        @click="editing = true">
+                        Edit Rankings
+                    </button>
+                    <button v-if="rankedList.length > 0" class="btn btn-sm px-2 py-1"
+                        style="background-color: #1DB954; color: #fff; border: none;"
+                        @click="handleSpotifyExport"
+                        title="Export ranked songs to a Spotify playlist">
+                        Spotify
+                    </button>
+                </template>
 
                 <!-- Expand / collapse toggle (always visible) -->
                 <button class="btn btn-sm px-2 py-1 d-flex align-items-center justify-content-center"
@@ -206,6 +233,16 @@ const cancelReset = () => { showConfirmReset.value = false }
 
         <p v-if="error" class="text-danger m-3">{{ error }}</p>
     </div>
+
+    <SpotifyExportModal
+        v-if="spotifyModalOpen"
+        :artistName="props.artistName"
+        :songs="rankedList"
+        :playlistName="`${props.artistName} - Ranked Discography`"
+        :token="spotifyToken"
+        :theme="theme"
+        @close="spotifyModalOpen = false"
+    />
 
     <!-- Reset confirm modal -->
     <div v-if="showConfirmReset" class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5);">

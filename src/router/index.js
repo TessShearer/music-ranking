@@ -11,6 +11,7 @@ import ResetPassword from "../views/ResetPassword.vue";
 import ArtistDetail from "../views/ArtistDetail.vue";
 import ForbiddenView from "../views/ForbiddenView.vue";
 import MemberAddCard from "../views/components/MemberAddCard.vue";
+import SpotifyCallback from "../views/SpotifyCallback.vue";
 
 const routes = [
   {
@@ -69,6 +70,12 @@ const routes = [
     path: '/forbidden',
     name: "ForbiddenView",
     component: ForbiddenView,
+  },
+  {
+    path: '/spotify-callback',
+    name: "SpotifyCallback",
+    component: SpotifyCallback,
+    meta: { hideNavbar: true },
   },
 ];
 
